@@ -360,3 +360,593 @@ h1 {
   transform: none;
   box-shadow: none;
 }
+/* --- Styles for POS-like forms (Add Product, Add Supplier, etc.) --- */
+
+.proveedor-page-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+    height: calc(100vh - var(--navbar-height) - 40px); /* Adjust height: viewport - navbar - margins */
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px; /* Smaller max-width for simpler forms */
+    background-color: var(--background-light);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    font-family: var(--font-family);
+    color: var(--text-color-dark);
+    overflow: hidden; /* Crucial: prevent scroll on the container itself */
+    box-sizing: border-box; /* Include padding in width/height calculations */
+    text-align: center; /* Center text globally in the container */
+}
+
+.page-heading {
+    font-size: 2em;
+    color: var(--primary-color);
+    margin-bottom: 15px; /* Adjust margin */
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent-color); /* Use accent color for line */
+    padding-bottom: 10px;
+    width: 100%; /* Ensure heading spans full width of container */
+    text-align: center;
+}
+
+/* Base form container (can be reused) */
+.form-container {
+    width: 100%; /* Form takes full width of its parent container */
+    flex-grow: 1; /* Allow form to take available space */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Push button to bottom, fields to top */
+    padding-top: 20px; /* Space between heading and form fields */
+    text-align: left; /* Align form fields to the left within the form */
+}
+
+/* Grid for general forms (can be 2-column for products, 1-column for suppliers) */
+.form-grid-two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: 15px 25px; /* Reduced gaps for compactness */
+    margin-bottom: 15px; /* Space between grid and description */
+}
+
+.form-grid-single-column {
+    display: flex; /* Use flex for single column layout */
+    flex-direction: column;
+    gap: 20px; /* Gap between form groups */
+    flex-grow: 1; /* Allow grid to grow */
+}
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Gap between items within each column */
+}
+
+.form-group {
+    margin-bottom: 0; /* Handled by gap in grid/flex */
+}
+
+.form-group-full-width {
+    width: 100%;
+    /* When used inside a grid, this would be grid-column: span 2; */
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px; /* Reduced label margin */
+    font-weight: 600;
+    color: var(--text-color-dark);
+    font-size: 0.95em; /* Slightly smaller font */
+}
+
+.required-field {
+    color: #e74c3c; /* Specific red for required indicator */
+    font-size: 1em;
+    margin-left: 5px;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+    width: calc(100% - 20px); /* Account for padding */
+    padding: 12px 10px; /* Consistent padding */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    font-family: var(--font-family); /* Inherit app font */
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: var(--background-light);
+    color: var(--text-color-dark);
+}
+
+.form-textarea {
+    min-height: 80px;
+    max-height: 120px;
+    resize: vertical;
+}
+
+.form-select {
+    width: 100%; /* Select takes full width */
+    cursor: pointer;
+    appearance: none; /* Remove default arrow on some browsers */
+    background: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 20 20\' fill=\'%23555\'%3E%3Cpath d=\'M7 10l5 5 5-5H7z\'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background-size: 12px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    padding-top: 5px;
+}
+
+.form-checkbox {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.form-label-checkbox {
+    margin-bottom: 0;
+    font-weight: normal;
+    color: var(--text-color-dark);
+    cursor: pointer;
+    font-size: 0.95em;
+}
+
+.description-section {
+    margin-bottom: 20px; /* Space before the button */
+    /* When used in grid layout, this would be grid-column: span 2; */
+}
+
+.button-container {
+    text-align: center;
+    padding-top: 10px;
+}
+
+.submit-button {
+    padding: 12px 25px;
+    font-size: 1em;
+    font-weight: 600;
+    background-color: var(--accent-color); /* Using your accent color for primary action */
+    color: var(--text-color-light);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); /* Shadow based on accent color */
+}
+.submit-button:hover {
+    background-color: #2980b9; /* Slightly darker accent on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
+}
+.submit-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(52, 152, 219, 0.2);
+}
+.submit-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Feedback Messages --- */
+.alert-message {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: bold;
+    width: 100%; /* Ensure messages span full width of form */
+}
+
+.success-message {
+    background-color: #e6ffe6; /* Light green */
+    color: #28a745; /* Darker green */
+    border: 1px solid #28a745;
+}
+
+.error-message {
+    background-color: #ffe6e6; /* Light red */
+    color: #dc3545; /* Darker red */
+    border: 1px solid #dc3545;
+}
+
+.loading-message {
+    text-align: center;
+    font-size: 1.2em;
+    color: var(--primary-color);
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--background-medium);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+/* General page content for consistency */
+.page-content {
+    background-color: var(--background-light);
+    padding: 20px 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    margin-bottom: 20px;
+}
+
+/* Additional focus styles for form elements */
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    outline: none;
+}
+
+/* Adjustments for the product page (if it uses different grid) */
+/* You might want a specific class for the product page container as well */
+.product-page-container .form-grid-two-column {
+    /* If you keep a two-column grid for products, define its styles here */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px 25px;
+    margin-bottom: 15px;
+}
+
+.product-page-container .form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.product-page-container .form-group-full-width {
+    grid-column: span 2;
+}
+
+.product-page-container .description-section {
+    grid-column: span 2;
+}
+/* --- POS Page Specific Styles --- */
+
+.pos-page-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--navbar-height) - 40px); /* Full viewport height minus margins */
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 1200px; /* Wider for POS layout */
+    background-color: var(--background-light);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    font-family: var(--font-family);
+    color: var(--text-color-dark);
+    overflow: hidden; /* Crucial: prevent scroll on the container itself */
+    box-sizing: border-box;
+}
+
+.pos-heading {
+    font-size: 2.2em; /* Slightly larger heading for main POS page */
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: 700;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+}
+
+.pos-main-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr; /* Left column (input) wider, Right (items/summary) narrower */
+    gap: 25px; /* Gap between columns */
+    flex-grow: 1; /* Allow the grid to take available vertical space */
+    overflow: hidden; /* Prevent grid from causing scroll */
+}
+
+.pos-left-column,
+.pos-right-column {
+    display: flex;
+    flex-direction: column;
+    padding-right: 10px; /* Little padding to avoid content touching edge */
+    overflow: hidden; /* Each column itself should be scrollable if needed */
+}
+
+/* Make right column (sale items) scrollable if content overflows */
+.pos-right-column {
+    overflow-y: auto; /* Allow internal scrolling if content exceeds height */
+    padding-left: 10px; /* Symmetrical padding */
+}
+
+
+.pos-section {
+    background-color: var(--background-medium);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px; /* Space between sections */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Subtle inner shadow */
+}
+.pos-section:last-child {
+    margin-bottom: 0; /* No margin after last section */
+}
+
+.pos-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 1em;
+}
+
+.pos-input,
+.pos-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    background-color: var(--background-light);
+    color: var(--text-color-dark);
+}
+
+.pos-input:focus,
+.pos-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    outline: none;
+}
+
+.pos-search-results {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+    max-height: 150px; /* Limit height of search results */
+    overflow-y: auto; /* Scroll if many results */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-light);
+    box-shadow: 0 2px 5px var(--shadow-color);
+}
+.pos-search-results li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+.pos-search-results li:hover {
+    background-color: var(--background-medium);
+    color: var(--accent-color);
+}
+.pos-search-results li:last-child {
+    border-bottom: none;
+}
+
+.pos-selected-info {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #e8f5e9; /* Light green for selection confirmation */
+    color: #2e7d32; /* Dark green text */
+    border-radius: 5px;
+    font-size: 0.9em;
+    border: 1px solid #c8e6c9;
+}
+
+.pos-quick-select-btn {
+    background-color: var(--secondary-color);
+    color: var(--text-color-light);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+.pos-quick-select-btn:hover {
+    background-color: var(--primary-color);
+}
+
+/* Sale Items List */
+.sale-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: calc(100vh - var(--navbar-height) - 40px - 350px); /* Adjust based on other elements' height */
+    overflow-y: auto; /* Essential for scrolling sale items */
+    margin-bottom: 15px;
+}
+
+.sale-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 0.95em;
+    gap: 10px;
+}
+.sale-item:last-child {
+    border-bottom: none;
+}
+
+.item-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.item-name {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+.item-price {
+    font-size: 0.85em;
+    color: #555;
+}
+
+.item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.quantity-btn {
+    background-color: var(--accent-color);
+    color: var(--text-color-light);
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+.quantity-btn:hover {
+    background-color: #2980b9;
+}
+.item-quantity {
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+}
+.item-subtotal {
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 70px;
+    text-align: right;
+}
+.remove-item-btn {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 0 5px;
+    transition: transform 0.2s ease;
+}
+.remove-item-btn:hover {
+    transform: scale(1.1);
+    color: #c0392b;
+}
+
+/* Summary Section */
+.summary-section {
+    background-color: var(--background-medium);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: auto; /* Push to bottom if content is short */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 1.1em;
+    border-bottom: 1px dotted var(--border-color);
+}
+.summary-line:last-of-type {
+    border-bottom: none;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--primary-color);
+    padding-top: 10px;
+}
+.summary-value {
+    font-weight: 700;
+}
+
+/* Payment Section */
+.payment-section {
+    margin-bottom: 20px;
+}
+.pos-select {
+    width: 100%;
+}
+
+/* Actions */
+.pos-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+    margin-top: 10px; /* Space between payment and buttons */
+}
+.pos-action-btn {
+    flex-grow: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.cancel-btn {
+    background-color: #e74c3c; /* Red for cancel */
+    color: var(--text-color-light);
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+}
+.cancel-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(231, 76, 60, 0.4);
+}
+.cancel-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.process-btn {
+    background-color: #28a745; /* Green for process */
+    color: var(--text-color-light);
+    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+}
+.process-btn:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+}
+.process-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.empty-state {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+    background-color: var(--background-light);
+    border-radius: 5px;
+    font-style: italic;
+}
+
+/* General overrides/adjustments for POS page */
+.page-content {
+    /* Ensure general page-content doesn't interfere with POS specific layout */
+    padding: 0; /* Remove default padding from page-content if pos-page-container handles it */
+    box-shadow: none; /* Remove default shadow if pos-page-container handles it */
+    background: none; /* Remove default background if pos-page-container handles it */
+}
+
+.page-content.pos-page-container {
+    padding: 20px; /* Re-apply padding specifically for POS container */
+    background-color: var(--background-light);
+    box-shadow: 0 4px 20px var(--shadow-color);
+}

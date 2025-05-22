@@ -16,6 +16,7 @@ import DetalleVentaPage from './pages/DetalleVentaPage';
 import ClientesPage from './pages/ClientesPage';
 import FormasPagoPage from './pages/FormasPagoPage';
 import CategoriasPage from './pages/CategoriasPage';
+import POSPage from './pages/POSPage';
 import ProveedoresPage from './pages/ProveedoresPage';
 
 const App = () => {
@@ -38,6 +39,7 @@ const App = () => {
             <Route path="/usuarios" element={<UsuariosPage />} />
 
             {/* Rutas de Ventas */}
+            <Route path="/pos" element={<POSPage />} />
             <Route path="/facturas" element={<FacturasPage />} />
             <Route path="/detalles-venta" element={<DetalleVentaPage />} />
 

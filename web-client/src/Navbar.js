@@ -1,5 +1,7 @@
+// src/components/Navbar.js
 import "./App.css";
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from 'react-router-dom'; // Make sure you have react-router-dom installed
 
 const Navbar = () => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -21,6 +23,11 @@ const Navbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Helper to close the dropdown when a sub-item is clicked
+  const handleMenuItemClick = () => {
+    setOpenMenu(null);
+  };
 
   const menuItems = [
     {
@@ -44,7 +51,8 @@ const Navbar = () => {
     {
       label: "Ventas",
       key: "ventas",
-      subItems: [
+      subItems: [        
+        { label: "Realizar Venta", href: "/pos" },
         { label: "Facturas", href: "/facturas" },
         { label: "Detalle Venta", href: "/detalles-venta" },
       ],
@@ -64,11 +72,11 @@ const Navbar = () => {
   return (
     <nav className="navbar" ref={navRef}>
       <div className="navbar-logo">
-        <a href="/">🚀 Mi Proyecto</a>
+        <Link to="/" onClick={handleMenuItemClick}>🚀 Gestor de Inventarios </Link> {/* Changed to Link */}
       </div>
       <ul className="navbar-menu">
         <li>
-          <a href="/" className="navbar-item">Inicio</a>
+          <Link to="/" className="navbar-item" onClick={handleMenuItemClick}>Inicio</Link> {/* Changed to Link */}
         </li>
 
         {menuItems.map((item) => (
@@ -85,7 +93,8 @@ const Navbar = () => {
               <ul className="dropdown-menu" id={`dropdown-${item.key}`}>
                 {item.subItems.map((subItem) => (
                   <li key={subItem.href}>
-                    <a href={subItem.href} className="dropdown-item">{subItem.label}</a>
+                    {/* Keep <a> for now as requested, but recommend changing to Link for internal routes */}
+                    <a href={subItem.href} className="dropdown-item" onClick={handleMenuItemClick}>{subItem.label}</a>
                   </li>
                 ))}
               </ul>
