@@ -27,7 +27,7 @@ const Navbar = () => {
       label: "Productos",
       key: "productos",
       subItems: [
-        { label: "Agregar Stock", href: "/agregar-stock" },
+        { label: "Crear Productos", href: "/crear-productos" },
         { label: "Editar Productos", href: "/editar-productos" },
         { label: "Eliminar Productos", href: "/eliminar-productos" },
       ],

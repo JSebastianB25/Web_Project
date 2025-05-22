@@ -309,3 +309,54 @@ h1 {
 .card li:last-child {
   border-bottom: none; /* No border for the last item */
 }
+
+/* En App.css */
+
+/* ... (tus estilos existentes) ... */
+
+.main-content {
+  padding-top: 20px; /* Espacio debajo del navbar si no lo maneja ya app-container */
+  /* Si app-container ya tiene padding-top: calc(var(--navbar-height) + 20px);
+     entonces este padding-top podría no ser necesario o ser menor.
+     Ajusta según cómo se vea. */
+}
+
+.page-content {
+  background-color: var(--background-light, #fff); /* Usa tus variables de color */
+  padding: 20px 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-color, rgba(0,0,0,0.1));
+  margin-bottom: 20px; /* Espacio entre contenidos si hay varios en una vista (menos común con SPA) */
+}
+
+.page-content h2 {
+  color: var(--primary-color, #2c3e50);
+  margin-bottom: 15px;
+  border-bottom: 2px solid var(--accent-color, #3498db);
+  padding-bottom: 10px;
+}
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+  outline: none;
+}
+
+.submit-button:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+}
+
+.submit-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(40, 167, 69, 0.2);
+}
+
+.submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
