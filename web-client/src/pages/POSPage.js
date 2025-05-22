@@ -248,7 +248,7 @@ const POSPage = () => {
         throw new Error(`Error al crear factura: ${JSON.stringify(errorDetail.detail || errorDetail)}`);
       }
       const factura = await facturaResponse.json();
-      const facturaId = factura.id; // Assuming your Django response provides 'id' as the PK for Factura
+      const facturaId = factura.id; // This will now correctly map to id_factura due to serializer change
 
       // *** ADDED DEBUGGING ***
       console.log(`Factura creada con ID: ${facturaId}`);
@@ -548,8 +548,19 @@ const POSPage = () => {
             {filteredProducts.length > 0 && productSearchTerm.length > 1 && (
               <ul className="pos-search-results product-results">
                 {filteredProducts.map(product => (
-                  <li key={product.referencia_producto} onClick={() => addProductToSale(product)}> {/* Use referencia_producto as key */}
-                    {product.nombre} (Ref: {product.referencia_producto}) - Stock: {product.stock}
+                  <li key={product.referencia_producto} onClick={() => addProductToSale(product)} className="product-search-item">
+                    {/* Add image display here */}
+                    {product.imagen && (
+                        <img
+                            src={product.imagen}
+                            alt={product.nombre}
+                            className="product-thumbnail"
+                        />
+                    )}
+                    <div className="product-info-text">
+                        <span className="product-name-ref">{product.nombre} (Ref: {product.referencia_producto})</span>
+                        <span className="product-stock-price">Stock: {product.stock} | Precio: ${product.precio_costo}</span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -568,8 +579,18 @@ const POSPage = () => {
                 {saleItems.map(item => (
                   <li key={item.product_obj.referencia_producto} className="sale-item"> {/* Use referencia_producto as key */}
                     <div className="item-details">
-                      <span className="item-name">{item.product_obj.nombre}</span>
-                      <span className="item-price"> ${item.product_obj.precio_costo} x {item.quantity}</span>
+                      {item.product_obj.imagen && (
+                          <img
+                              src={item.product_obj.imagen}
+                              alt={item.product_obj.nombre}
+                              className="item-thumbnail"
+                          />
+                      )}
+                      <div className="item-name-qty">
+                        <span className="item-name">{item.product_obj.nombre}</span>
+                        <span className="item-ref">(Ref: {item.product_obj.referencia_producto})</span>
+                        <span className="item-price"> ${item.product_obj.precio_costo}</span>
+                      </div>
                     </div>
                     <div className="item-actions">
                       <button onClick={() => adjustItemQuantity(item.product_obj.referencia_producto, -1)} className="quantity-btn">-</button>

@@ -950,3 +950,117 @@ h1 {
     background-color: var(--background-light);
     box-shadow: 0 4px 20px var(--shadow-color);
 }
+/* src/components/POSPage.css or wherever your POS styles are */
+
+/* Product Search Item Styling */
+.pos-search-results.product-results li.product-search-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.pos-search-results.product-results li.product-search-item:hover {
+    background-color: #f0f0f0;
+}
+
+.product-thumbnail {
+    width: 40px; /* Adjust size as needed */
+    height: 40px; /* Adjust size as needed */
+    object-fit: cover;
+    margin-right: 10px;
+    border-radius: 4px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.product-info-text {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.product-name-ref {
+    font-weight: bold;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.product-stock-price {
+    font-size: 0.85em;
+    color: #666;
+}
+
+/* Sale Item Styling */
+.sale-items-list .sale-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.sale-items-list .sale-item .item-details {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.sale-items-list .sale-item .item-thumbnail {
+    width: 30px; /* Adjust size */
+    height: 30px; /* Adjust size */
+    object-fit: cover;
+    margin-right: 8px;
+    border-radius: 2px;
+}
+
+.sale-items-list .sale-item .item-name-qty {
+    display: flex;
+    flex-direction: column;
+}
+
+.sale-items-list .sale-item .item-name {
+    font-weight: bold;
+}
+
+.sale-items-list .sale-item .item-ref,
+.sale-items-list .sale-item .item-price {
+    font-size: 0.85em;
+    color: #777;
+}
+
+/* Adjust existing quantity buttons and remove button for better alignment */
+.sale-item .item-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Space between buttons and quantity */
+}
+
+.sale-item .quantity-btn {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+.sale-item .quantity-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.sale-item .item-quantity {
+    font-weight: bold;
+    min-width: 20px; /* Ensure space for single/double digits */
+    text-align: center;
+}
+
+.sale-item .remove-item-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #dc3545; /* Red for delete */
+    margin-left: 5px;
+}
