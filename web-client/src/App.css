@@ -1,0 +1,311 @@
+/* --- Variables CSS --- */
+:root {
+  --primary-color: #2c3e50; /* Azul oscuro/grisáceo */
+  --secondary-color: #34495e; /* Un poco más claro que el primario */
+  --accent-color: #3498db; /* Azul brillante para acentos */
+  --text-color-light: #ecf0f1; /* Casi blanco */
+  --text-color-dark: #2c3e50; /* Mismo que el primario para texto oscuro */
+  --background-light: #ffffff;
+  --background-medium: #f8f9fa;
+  --border-color: #dee2e6;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --navbar-height: 70px; /* Altura de la barra de navegación */
+}
+
+/* --- Reseteo Básico y Estilos Generales --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-medium);
+  color: var(--text-color-dark);
+  line-height: 1.6;
+}
+
+.app-container {
+  max-width: 1200px; /* Un poco más ancho */
+  margin: auto;
+  padding: 20px;
+  padding-top: calc(var(--navbar-height) + 20px); /* Espacio para el navbar fijo */
+}
+
+h1 {
+  text-align: center;
+  color: var(--primary-color);
+  font-size: 2rem; /* Usar rem para escalabilidad */
+  margin-bottom: 1.5rem;
+}
+
+/* --- Navbar --- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--navbar-height);
+  background-color: var(--primary-color);
+  color: var(--text-color-light);
+  padding: 0 25px; /* Padding horizontal */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: 600; /* Semi-bold para Poppins */
+}
+.navbar-logo a {
+  color: var(--text-color-light);
+  text-decoration: none;
+}
+
+.navbar-menu {
+  list-style: none;
+  display: flex;
+  align-items: center; /* Alinea verticalmente los items del menú */
+  gap: 5px; /* Espacio reducido, el padding lo manejará el item */
+}
+
+.navbar-item,
+.navbar-item-dropdown > .dropdown-toggle {
+  color: var(--text-color-light);
+  text-decoration: none;
+  font-weight: 500; /* Medium para Poppins */
+  padding: 12px 18px; /* Más padding para mejor zona de clic */
+  border-radius: 6px; /* Bordes redondeados sutiles */
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  display: block; /* Para que el padding se aplique correctamente */
+}
+
+.navbar-item:hover,
+.navbar-item-dropdown > .dropdown-toggle:hover,
+.navbar-item-dropdown.open > .dropdown-toggle {
+  background-color: var(--secondary-color); /* Fondo al pasar el ratón o estar abierto */
+  color: var(--accent-color); /* Color de acento para el texto */
+}
+
+/* --- Dropdowns --- */
+.navbar-item-dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: none;
+  border: none;
+  font-family: inherit; /* Heredar la fuente del navbar */
+  font-size: inherit; /* Heredar tamaño de fuente */
+  cursor: pointer;
+  display: flex; /* Para alinear texto y flecha */
+  align-items: center;
+}
+
+.dropdown-arrow {
+  margin-left: 8px;
+  font-size: 0.7em; /* Flecha más pequeña */
+  transition: transform 0.3s ease;
+}
+
+.navbar-item-dropdown.open .dropdown-arrow {
+  transform: rotate(180deg); /* Rotar flecha cuando está abierto */
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px); /* Un poco de espacio desde el botón */
+  left: 0;
+  background: var(--background-light);
+  color: var(--text-color-dark);
+  list-style: none;
+  padding: 10px 0; /* Padding vertical, sin padding horizontal (lo tendrán los items) */
+  border-radius: 6px;
+  box-shadow: 0 5px 15px var(--shadow-color);
+  min-width: 220px; /* Ancho mínimo para los desplegables */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px); /* Efecto de "caída" */
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+  z-index: 1001; /* Por encima del navbar si es necesario */
+}
+
+.navbar-item-dropdown.open > .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+
+.dropdown-item {
+  display: block; /* Para que ocupe todo el ancho del li */
+  padding: 10px 20px; /* Buen padding para los items */
+  text-decoration: none;
+  color: var(--text-color-dark);
+  font-weight: 400; /* Regular */
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  white-space: nowrap; /* Evitar que el texto se divida en dos líneas */
+}
+
+.dropdown-item:hover {
+  background-color: var(--background-medium); /* Fondo sutil al pasar el ratón */
+  color: var(--accent-color); /* Color de acento */
+}
+
+
+/* --- Tarjetas (Ejemplo, adaptado a nuevas variables) --- */
+.card {
+  background: var(--background-light);
+  padding: 25px;
+  margin: 25px 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px var(--shadow-color);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Responsividad --- */
+@media (max-width: 992px) { /* Ajuste el breakpoint si es necesario */
+  .navbar {
+    padding: 0 15px; /* Menos padding en pantallas medianas */
+  }
+  .navbar-menu {
+    gap: 0; /* Eliminar gap, el padding del item lo maneja */
+  }
+  .navbar-item,
+  .navbar-item-dropdown > .dropdown-toggle {
+    padding: 10px 12px; /* Menos padding en items */
+    font-size: 0.95rem;
+  }
+  .navbar-logo {
+    font-size: 1.3rem;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start; /* Alinear logo a la izquierda */
+    height: auto; /* Altura automática para acomodar items */
+    padding: 15px;
+  }
+
+  .navbar-logo {
+    margin-bottom: 10px; /* Espacio si el menú se colapsa debajo */
+    width: 100%; /* Ocupar ancho para centrar o alinear */
+  }
+
+  .navbar-menu {
+    flex-direction: column;
+    width: 100%; /* Menú ocupa todo el ancho */
+    align-items: stretch; /* Estirar items */
+  }
+
+  .navbar-item,
+  .navbar-item-dropdown > .dropdown-toggle {
+    text-align: left; /* Alinear texto a la izquierda */
+    width: 100%;
+    padding: 12px 15px; /* Ajustar padding para vista móvil */
+  }
+  
+  .navbar-item-dropdown.open > .dropdown-toggle {
+    background-color: var(--secondary-color); /* Mantener consistencia */
+  }
+
+  .dropdown-menu {
+    position: static; /* Quitar posicionamiento absoluto en móvil */
+    box-shadow: none;
+    border-top: 1px solid var(--border-color);
+    border-radius: 0;
+    width: 100%;
+    opacity: 1; /* Siempre visible cuando el toggle lo permite */
+    visibility: visible;
+    transform: none;
+    padding-left: 20px; /* Indentación para submenú */
+    background-color: var(--secondary-color); /* Fondo ligeramente diferente para el submenú */
+  }
+  
+  .dropdown-menu .dropdown-item {
+    color: var(--text-color-light); /* Texto claro sobre fondo oscuro */
+    padding: 10px 15px;
+  }
+  
+  .dropdown-menu .dropdown-item:hover {
+     background-color: var(--primary-color);
+     color: var(--accent-color);
+  }
+
+  /* Para que el app-container no se oculte tanto en móvil si la navbar crece mucho */
+  .app-container {
+     padding-top: 20px; /* Reducir el padding-top si el navbar ya no es fijo o es más alto */
+  }
+  /* Si quieres que el navbar siga fijo en móvil y que el menú sea scrolleable,
+     necesitarías un "menú hamburguesa" y una lógica de toggle para el menú principal.
+     Lo que está aquí es una simplificación que apila todo.
+  */
+  /* ... (your existing App.css styles) ... */
+}
+/* --- Product Image --- */
+.product-image {
+  width: 100px; /* Adjusted size */
+  height: 100px;
+  object-fit: cover; /* To maintain aspect ratio */
+  border-radius: 4px;
+  margin-right: 15px; /* Space between image and text */
+  vertical-align: middle; /* Align with text better */
+  border: 1px solid var(--border-color, #eee); /* Use variable if defined */
+}
+
+/* --- Loading Spinner --- */
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px;
+  text-align: center;
+  color: var(--primary-color, #2c3e50); /* Use CSS variable if defined */
+}
+
+.loading-spinner {
+  border: 6px solid var(--background-medium, #f3f3f3); /* Light grey */
+  border-top: 6px solid var(--accent-color, #3498db); /* Blue */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- Card List Item Improvements (Optional) --- */
+.card ul {
+  list-style: none; /* Remove default bullets if not already done */
+  padding-left: 0;  /* Remove default padding if not already done */
+}
+
+.card li {
+  padding: 8px 0; /* Add some padding to list items */
+  border-bottom: 1px solid var(--border-color, #eee); /* Separator for items */
+  display: flex; /* For better alignment of image and text */
+  align-items: center; /* Vertically align items in the li */
+}
+
+.card li:last-child {
+  border-bottom: none; /* No border for the last item */
+}
