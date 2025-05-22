@@ -1,5 +1,7 @@
 // src/pages/POSPage.js
 import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const POSPage = () => {
   const [clients, setClients] = useState([]);
@@ -21,8 +23,9 @@ const POSPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
 
   const [submittingSale, setSubmittingSale] = useState(false);
-  const [saleError, setSaleError] = useState(null);
+  const [saleError, setSaleError] = useState(null); // Use this for displaying errors
   const [saleSuccessMessage, setSaleSuccessMessage] = useState('');
+  const [lastGeneratedInvoice, setLastGeneratedInvoice] = useState(null); // To store info about the last invoice
 
   // --- Fetch Dependencies (Clients, Products, Payment Methods) ---
   useEffect(() => {
@@ -42,8 +45,11 @@ const POSPage = () => {
         const productsData = await productsRes.json();
         const paymentMethodsData = await paymentMethodsRes.json();
 
+        // Important: Filter products based on 'referencia_producto' being available, as it's the PK
+        const validProducts = productsData.filter(p => p.activo && p.stock > 0 && p.referencia_producto);
+        console.log("Fetched Products Data (with PK):", validProducts);
         setClients(clientsData);
-        setProducts(productsData.filter(p => p.activo && p.stock > 0)); // Only active products with stock
+        setProducts(validProducts);
         setPaymentMethods(paymentMethodsData);
 
       } catch (err) {
@@ -51,7 +57,7 @@ const POSPage = () => {
         setFetchError(err);
       } finally {
         setLoadingDependencies(false);
-        productSearchInputRef.current?.focus(); // Auto-focus product search
+        productSearchInputRef.current?.focus();
       }
     };
 
@@ -64,7 +70,8 @@ const POSPage = () => {
       setFilteredClients(
         clients.filter(client =>
           client.nombre.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-          client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
+          client.email.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+          (client.telefono && client.telefono.includes(clientSearchTerm))
         )
       );
     } else {
@@ -94,61 +101,25 @@ const POSPage = () => {
 
   // --- Add Product to Sale ---
   const addProductToSale = (productToAdd) => {
-    // Check if product is already in saleItems
+    console.log("Product selected for adding:", productToAdd);
+    // CRUCIAL: Check for 'referencia_producto' as it's the actual primary key
+    if (!productToAdd.referencia_producto) {
+        console.error("Error: Producto seleccionado no tiene una referencia_producto válida.", productToAdd);
+        setSaleError({ message: `No se pudo agregar el producto "${productToAdd.nombre}" porque no tiene una referencia válida.` });
+        return;
+    }
+
+    // Use 'referencia_producto' for finding existing items and for keys
     const existingItemIndex = saleItems.findIndex(item => item.product_obj.referencia_producto === productToAdd.referencia_producto);
 
     if (existingItemIndex > -1) {
-      // If exists, increment quantity
       const updatedSaleItems = saleItems.map((item, index) => {
         if (index === existingItemIndex) {
           const newQuantity = item.quantity + 1;
           if (newQuantity > productToAdd.stock) {
             setSaleError({ message: `No hay suficiente stock para ${productToAdd.nombre}. Stock disponible: ${productToAdd.stock}` });
-            return item; // Don't add if exceeds stock
+            return item;
           }
-          return {
-            ...item,
-            quantity: newQuantity,
-            subtotal_item: parseFloat((newQuantity * item.product_obj.precio_costo).toFixed(2)) // Using precio_costo as sales price for simplicity
-          };
-        }
-        return item;
-      });
-      setSaleItems(updatedSaleItems);
-    } else {
-      // If new, add it
-      if (productToAdd.stock === 0) {
-        setSaleError({ message: `Producto "${productToAdd.nombre}" sin stock.` });
-        return;
-      }
-      setSaleItems([
-        ...saleItems,
-        {
-          product_obj: productToAdd,
-          quantity: 1,
-          subtotal_item: parseFloat(productToAdd.precio_costo) // Using precio_costo as sales price for simplicity
-        }
-      ]);
-    }
-    setProductSearchTerm(''); // Clear search after adding
-    setSaleError(null); // Clear previous errors
-    productSearchInputRef.current?.focus(); // Keep focus on search input
-  };
-
-  // --- Adjust Item Quantity ---
-  const adjustItemQuantity = (ref, delta) => {
-    setSaleItems(prevItems => {
-      const updatedItems = prevItems.map(item => {
-        if (item.product_obj.referencia_producto === ref) {
-          const newQuantity = item.quantity + delta;
-          if (newQuantity <= 0) {
-            return null; // Mark for removal
-          }
-          if (newQuantity > item.product_obj.stock) {
-            setSaleError({ message: `No hay suficiente stock para ${item.product_obj.nombre}. Stock disponible: ${item.product_obj.stock}` });
-            return item; // Don't allow quantity beyond stock
-          }
-          setSaleError(null); // Clear previous errors if adjustment is valid
           return {
             ...item,
             quantity: newQuantity,
@@ -156,16 +127,58 @@ const POSPage = () => {
           };
         }
         return item;
-      }).filter(Boolean); // Remove nulls (items with quantity <= 0)
+      });
+      setSaleItems(updatedSaleItems);
+    } else {
+      if (productToAdd.stock === 0) {
+        setSaleError({ message: `Producto "${productToAdd.nombre}" sin stock.` });
+        return;
+      }
+      setSaleItems([
+        ...saleItems,
+        {
+          product_obj: { ...productToAdd }, // Shallow copy to ensure all properties are there
+          quantity: 1,
+          subtotal_item: parseFloat(productToAdd.precio_costo)
+        }
+      ]);
+    }
+    setProductSearchTerm('');
+    setSaleError(null);
+    productSearchInputRef.current?.focus();
+  };
+
+  // --- Adjust Item Quantity ---
+  const adjustItemQuantity = (productRef, delta) => { // Now expects 'referencia_producto'
+    setSaleItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.product_obj.referencia_producto === productRef) { // Use 'referencia_producto' for matching
+          const newQuantity = item.quantity + delta;
+          if (newQuantity <= 0) {
+            return null;
+          }
+          if (newQuantity > item.product_obj.stock) {
+            setSaleError({ message: `No hay suficiente stock para ${item.product_obj.nombre}. Stock disponible: ${item.product_obj.stock}` });
+            return item;
+          }
+          setSaleError(null);
+          return {
+            ...item,
+            quantity: newQuantity,
+            subtotal_item: parseFloat((newQuantity * item.product_obj.precio_costo).toFixed(2))
+          };
+        }
+        return item;
+      }).filter(Boolean);
 
       return updatedItems;
     });
   };
 
   // --- Remove Item from Sale ---
-  const removeItemFromSale = (ref) => {
-    setSaleItems(saleItems.filter(item => item.product_obj.referencia_producto !== ref));
-    setSaleError(null); // Clear previous errors
+  const removeItemFromSale = (productRef) => { // Now expects 'referencia_producto'
+    setSaleItems(saleItems.filter(item => item.product_obj.referencia_producto !== productRef)); // Use 'referencia_producto' for filtering
+    setSaleError(null);
   };
 
   // --- Calculate Total ---
@@ -183,6 +196,7 @@ const POSPage = () => {
     setSelectedPaymentMethod('');
     setSaleError(null);
     setSaleSuccessMessage('');
+    setLastGeneratedInvoice(null);
     productSearchInputRef.current?.focus();
   };
 
@@ -191,6 +205,7 @@ const POSPage = () => {
     setSubmittingSale(true);
     setSaleError(null);
     setSaleSuccessMessage('');
+    setLastGeneratedInvoice(null);
 
     if (!selectedClient) {
       setSaleError({ message: 'Por favor, selecciona un cliente.' });
@@ -210,7 +225,13 @@ const POSPage = () => {
 
     try {
       // 1. Create Factura
-      const facturaResponse = await fetch('http://localhost:8000/api/facturas/', { // Adjust API endpoint
+      console.log("Attempting to create Factura with payload:", {
+          cliente: selectedClient,
+          forma_pago: selectedPaymentMethod,
+          total: totalAmount,
+          estado: 'completada',
+      });
+      const facturaResponse = await fetch('http://localhost:8000/api/facturas/', { // Adjust API endpoint if needed
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,43 +243,201 @@ const POSPage = () => {
       });
 
       if (!facturaResponse.ok) {
-        const errorData = await facturaResponse.json();
-        throw new Error(`Error al crear factura: ${JSON.stringify(errorData)}`);
+        const errorDetail = await facturaResponse.json().catch(() => ({ detail: 'Unknown error or non-JSON response' }));
+        console.error("Factura creation error response:", facturaResponse.status, errorDetail);
+        throw new Error(`Error al crear factura: ${JSON.stringify(errorDetail.detail || errorDetail)}`);
       }
       const factura = await facturaResponse.json();
-      const facturaId = factura.id_factura;
+      const facturaId = factura.id; // Assuming your Django response provides 'id' as the PK for Factura
+
+      // *** ADDED DEBUGGING ***
+      console.log(`Factura creada con ID: ${facturaId}`);
+      if (!facturaId) {
+          console.error("CRITICAL: facturaId is missing after Factura creation!", factura);
+          throw new Error("No se pudo obtener el ID de la factura creada.");
+      }
+      // **********************
 
       // 2. Create DetalleVenta for each item
       for (const item of saleItems) {
-        const detalleVentaResponse = await fetch('http://localhost:8000/api/detalle-ventas/', { // Adjust API endpoint
+        // CRUCIAL: Send 'referencia_producto' as the foreign key value for 'producto'
+        console.log(`Sending DetalleVenta for product: ${item.product_obj.nombre}, Ref: ${item.product_obj.referencia_producto}`);
+        // *** ADDED DEBUGGING ***
+        console.log(`DetalleVenta payload for ${item.product_obj.nombre}:`, {
+            factura: facturaId,
+            producto: item.product_obj.referencia_producto,
+            cantidad: item.quantity,
+            precio_unitario: item.product_obj.precio_costo,
+        });
+        // **********************
+
+        if (!item.product_obj.referencia_producto) {
+            console.error("Producto sin referencia_producto al enviar a DetalleVenta:", item.product_obj);
+            throw new Error(`Producto "${item.product_obj.nombre}" no tiene una referencia de producto válida para enviar.`);
+        }
+
+        const detalleVentaResponse = await fetch('http://localhost:8000/api/detalle-ventas/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             factura: facturaId,
-            producto: item.product_obj.referencia_producto, // Use referencia_producto as the FK
+            producto: item.product_obj.referencia_producto, // <--- THIS IS THE KEY CHANGE
             cantidad: item.quantity,
-            precio_unitario: item.product_obj.precio_costo, // Assuming precio_costo is the selling price
+            precio_unitario: item.product_obj.precio_costo,
           }),
         });
 
         if (!detalleVentaResponse.ok) {
-          const errorData = await detalleVentaResponse.json();
-          // Potentially handle rollback of factura if detalle_venta fails
-          console.error(`Error al crear detalle de venta para ${item.product_obj.nombre}:`, errorData);
-          throw new Error(`Error al crear detalle de venta para ${item.product_obj.nombre}.`);
+          const errorDetail = await detalleVentaResponse.json().catch(() => ({ detail: 'Unknown error or non-JSON response' }));
+          console.error(`Error al crear detalle de venta para ${item.product_obj.nombre}:`, detalleVentaResponse.status, errorDetail);
+          throw new Error(`Error al crear detalle de venta para ${item.product_obj.nombre}: ${JSON.stringify(errorDetail.detail || errorDetail)}`);
         }
       }
 
+      const clientInfo = clients.find(c => c.id === selectedClient);
+      const paymentMethodInfo = paymentMethods.find(pm => pm.id === selectedPaymentMethod);
+
+      // Store invoice details for PDF generation
+      setLastGeneratedInvoice({
+        id: facturaId,
+        date: new Date().toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+        clientName: clientInfo ? clientInfo.nombre : 'Consumidor Final',
+        clientEmail: clientInfo ? clientInfo.email : 'N/A',
+        clientPhone: clientInfo ? clientInfo.telefono : 'N/A',
+        paymentMethod: paymentMethodInfo ? paymentMethodInfo.metodo : 'N/A',
+        items: saleItems.map(item => ({
+          name: item.product_obj.nombre,
+          ref: item.product_obj.referencia_producto,
+          qty: item.quantity,
+          unitPrice: item.product_obj.precio_costo,
+          subtotal: item.subtotal_item,
+        })),
+        total: totalAmount,
+      });
+
       setSaleSuccessMessage(`Venta (Factura #${facturaId}) procesada exitosamente!`);
-      clearSale(); // Reset POS after successful sale
+      clearSale();
 
     } catch (err) {
       console.error("Error processing sale:", err);
-      setSaleError(err);
+      let errorMessage = 'Ocurrió un error desconocido al procesar la venta.';
+      if (err.message) {
+          try {
+              const parsedError = JSON.parse(err.message);
+              // Handle potential nested error details from DRF, e.g., {"factura": ["This field is required."]}
+              if (parsedError.factura) {
+                  errorMessage = `Error en factura: ${parsedError.factura.join(', ')}`;
+              } else if (parsedError.producto) { // In case product error comes up again
+                  errorMessage = `Error en producto: ${parsedError.producto.join(', ')}`;
+              } else {
+                  errorMessage = err.message;
+              }
+          } catch (e) {
+              errorMessage = err.message;
+          }
+      }
+      setSaleError({ message: errorMessage });
     } finally {
       setSubmittingSale(false);
     }
   };
+
+
+  // --- PDF Generation and Sharing Logic ---
+  const generateAndSharePDF = (invoiceDetails) => {
+    if (!invoiceDetails) {
+      alert("No hay detalles de factura para generar el PDF.");
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    doc.setFont("helvetica");
+
+    // Title
+    doc.setFontSize(22);
+    doc.text("Factura de Venta", 105, 20, null, null, "center");
+
+    // Company Info (replace with your company details)
+    doc.setFontSize(10);
+    doc.text("Mi Tienda POS", 14, 30);
+    doc.text("Dirección: Calle Ficticia 123", 14, 35);
+    doc.text("Teléfono: +57 310 123 4567", 14, 40);
+    doc.text("Email: info@mitienda.com", 14, 45);
+
+    // Invoice Details & Client Info
+    doc.setFontSize(12);
+    doc.text(`Factura No: ${invoiceDetails.id}`, 140, 30);
+    doc.text(`Fecha: ${invoiceDetails.date}`, 140, 37);
+
+    doc.setFontSize(10);
+    doc.text("Detalles del Cliente:", 14, 55);
+    doc.text(`Nombre: ${invoiceDetails.clientName}`, 14, 60);
+    if (invoiceDetails.clientEmail && invoiceDetails.clientEmail !== 'N/A') {
+        doc.text(`Email: ${invoiceDetails.clientEmail}`, 14, 65);
+    }
+    if (invoiceDetails.clientPhone && invoiceDetails.clientPhone !== 'N/A') {
+        doc.text(`Teléfono: ${invoiceDetails.clientPhone}`, 14, 70);
+    }
+    doc.text(`Forma de Pago: ${invoiceDetails.paymentMethod}`, 14, 75);
+
+    // Table for Sale Items
+    const tableColumn = ["Cant.", "Producto", "Referencia", "P. Unitario", "Subtotal"];
+    const tableRows = [];
+
+    invoiceDetails.items.forEach(item => {
+      const itemData = [
+        item.qty,
+        item.name,
+        item.ref,
+        `$${item.unitPrice.toFixed(2)}`,
+        `$${item.subtotal.toFixed(2)}`,
+      ];
+      tableRows.push(itemData);
+    });
+
+    // AutoTable plugin adds the table
+    doc.autoTable(tableColumn, tableRows, {
+      startY: 85,
+      headStyles: { fillColor: [52, 152, 219] },
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 25, halign: 'right' },
+      },
+      didParseCell: function(data) {
+        if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    const finalY = doc.autoTable.previous.finalY;
+
+    // Totals
+    doc.setFontSize(12);
+    doc.text(`Total: $${invoiceDetails.total.toFixed(2)}`, 195, finalY + 15, null, null, "right");
+
+    // Thank You message
+    doc.setFontSize(10);
+    doc.text("¡Gracias por tu compra!", 105, finalY + 30, null, null, "center");
+
+    const filename = `Factura_${invoiceDetails.id}.pdf`;
+    doc.save(filename);
+
+    const whatsappMessage = `¡Hola ${invoiceDetails.clientName}! Aquí está tu factura #${invoiceDetails.id} de Mi Tienda POS. Total: $${invoiceDetails.total.toFixed(2)}. Puedes descargarla adjunta.`;
+    const whatsappUrl = `https://wa.me/${invoiceDetails.clientPhone || ''}?text=${encodeURIComponent(whatsappMessage)}`;
+    window.open(whatsappUrl, '_blank');
+
+    const emailSubject = `Tu Factura #${invoiceDetails.id} de Mi Tienda POS`;
+    const emailBody = `Hola ${invoiceDetails.clientName},\n\nAdjunto encontrarás tu factura #${invoiceDetails.id} por un total de $${invoiceDetails.total.toFixed(2)}.\n\n¡Gracias por tu compra!\n\nSaludos,\nMi Tienda POS`;
+    const emailUrl = `mailto:${invoiceDetails.clientEmail || ''}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(emailUrl, '_blank');
+  };
+
 
   if (loadingDependencies) {
     return (
@@ -288,6 +467,16 @@ const POSPage = () => {
       {saleSuccessMessage && (
         <div className="alert-message success-message">
           <span role="img" aria-label="success">✅</span> {saleSuccessMessage}
+          {lastGeneratedInvoice && (
+            <div className="share-options-container">
+              <button
+                className="share-btn"
+                onClick={() => generateAndSharePDF(lastGeneratedInvoice)}
+              >
+                <span role="img" aria-label="pdf">📄</span> Generar PDF y Compartir
+              </button>
+            </div>
+          )}
         </div>
       )}
       {saleError && saleError.message && (
@@ -311,7 +500,7 @@ const POSPage = () => {
               value={clientSearchTerm}
               onChange={(e) => {
                 setClientSearchTerm(e.target.value);
-                setSelectedClient(''); // Deselect client if typing
+                setSelectedClient('');
               }}
             />
             {filteredClients.length > 0 && clientSearchTerm.length > 1 && (
@@ -328,10 +517,10 @@ const POSPage = () => {
                 Cliente Seleccionado: <strong>{clients.find(c => c.id === selectedClient)?.nombre}</strong>
               </p>
             )}
-            {!selectedClient && ( // Option for "Consumidor Final" or similar
+            {!selectedClient && (
               <button
                 className="pos-quick-select-btn"
-                onClick={() => handleClientSelect(clients.find(c => c.nombre.toLowerCase() === 'consumidor final')?.id || clients[0]?.id)} // Try to find "Consumidor Final" or use first client as fallback
+                onClick={() => handleClientSelect(clients.find(c => c.nombre.toLowerCase() === 'consumidor final')?.id || clients[0]?.id)}
               >
                 Consumidor Final
               </button>
@@ -352,14 +541,14 @@ const POSPage = () => {
               onChange={(e) => setProductSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && filteredProducts.length > 0) {
-                  addProductToSale(filteredProducts[0]); // Add the first filtered product on Enter
+                  addProductToSale(filteredProducts[0]);
                 }
               }}
             />
             {filteredProducts.length > 0 && productSearchTerm.length > 1 && (
               <ul className="pos-search-results product-results">
                 {filteredProducts.map(product => (
-                  <li key={product.referencia_producto} onClick={() => addProductToSale(product)}>
+                  <li key={product.referencia_producto} onClick={() => addProductToSale(product)}> {/* Use referencia_producto as key */}
                     {product.nombre} (Ref: {product.referencia_producto}) - Stock: {product.stock}
                   </li>
                 ))}
@@ -377,7 +566,7 @@ const POSPage = () => {
             ) : (
               <ul className="sale-items-list">
                 {saleItems.map(item => (
-                  <li key={item.product_obj.referencia_producto} className="sale-item">
+                  <li key={item.product_obj.referencia_producto} className="sale-item"> {/* Use referencia_producto as key */}
                     <div className="item-details">
                       <span className="item-name">{item.product_obj.nombre}</span>
                       <span className="item-price"> ${item.product_obj.precio_costo} x {item.quantity}</span>
@@ -402,7 +591,6 @@ const POSPage = () => {
               <span>Subtotal:</span>
               <span className="summary-value">${totalAmount.toFixed(2)}</span>
             </div>
-            {/* You could add tax, discount lines here if applicable */}
             <div className="summary-line total-line">
               <span>Total:</span>
               <span className="summary-value">${totalAmount.toFixed(2)}</span>

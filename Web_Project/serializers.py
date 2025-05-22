@@ -27,6 +27,9 @@ class ProductoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class FacturaSerializer(serializers.ModelSerializer):
+    # Keep this, as id_factura is an AutoField, and we want it aliased to 'id'
+    id = serializers.IntegerField(source='id_factura', read_only=True)
+
     class Meta:
         model = Factura
         fields = '__all__'
