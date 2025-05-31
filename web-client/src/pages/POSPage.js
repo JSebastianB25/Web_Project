@@ -1,659 +1,486 @@
-// src/pages/POSPage.js
-import React, { useState, useEffect, useRef } from 'react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import React, { useState, useEffect, useCallback } from 'react';
+// Asegúrate de que esta ruta sea correcta para tu archivo CSS
+// Si POSPage.js está en src/pages/ y POSPage.css está en src/styles/, esta ruta es correcta:
+import '../styles/POSPage.css'; 
 
 const POSPage = () => {
-  const [clients, setClients] = useState([]);
+  // --- Estados para Productos ---
   const [products, setProducts] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
-  const [loadingDependencies, setLoadingDependencies] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productError, setProductError] = useState(null);
 
-  const [selectedClient, setSelectedClient] = useState(''); // Stores client ID
+  // --- Estados para Carrito de Compras ---
+  const [cartItems, setCartItems] = useState([]); // [{ product: {}, quantity: N, subtotal: M }]
+
+  // --- Estados para Cliente ---
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [filteredClients, setFilteredClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [clientError, setClientError] = useState(null);
 
-  const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const productSearchInputRef = useRef(null); // Ref for auto-focus
+  // --- Estados para Forma de Pago ---
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true);
+  const [paymentMethodError, setPaymentMethodError] = useState(null);
 
-  const [saleItems, setSaleItems] = useState([]); // [{ product_obj, quantity, subtotal_item }]
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  // --- Estados para Procesamiento de Venta ---
+  const [processingSale, setProcessingSale] = useState(false);
+  const [saleMessage, setSaleMessage] = useState(null); // { type: 'success'|'error'|'info', text: 'Mensaje' }
+  const [showSaleConfirmationModal, setShowSaleConfirmationModal] = useState(false);
+  const [saleResult, setSaleResult] = useState(null); // Datos de la factura creada
 
-  const [submittingSale, setSubmittingSale] = useState(false);
-  const [saleError, setSaleError] = useState(null); // Use this for displaying errors
-  const [saleSuccessMessage, setSaleSuccessMessage] = useState('');
-  const [lastGeneratedInvoice, setLastGeneratedInvoice] = useState(null); // To store info about the last invoice
 
-  // --- Fetch Dependencies (Clients, Products, Payment Methods) ---
-  useEffect(() => {
-    const fetchAllDependencies = async () => {
-      try {
-        const [clientsRes, productsRes, paymentMethodsRes] = await Promise.all([
-          fetch('http://localhost:8000/api/clientes/'),
-          fetch('http://localhost:8000/api/productos/'),
-          fetch('http://localhost:8000/api/formas-pago/')
-        ]);
+  // --- Helper para URL de Imagen (ajusta según tu configuración de Django) ---
+  const getProductImageUrl = (imagePath) => {
+    if (!imagePath) {
+      // Ruta a una imagen por defecto si el producto no tiene foto
+      return '/path/to/default_image.png'; // Cambia esto por una imagen de tu proyecto
+    }
+    // Si Django sirve imágenes desde /media/ y tu campo 'imagen' guarda solo el nombre o ruta relativa
+    // return `http://localhost:8000/media/${imagePath}`;
+    // Si tu campo 'imagen' ya guarda la URL completa (ej. de un CDN o URL absoluta), usa directamente
+    return imagePath;
+  };
 
-        if (!clientsRes.ok) throw new Error(`Error al cargar clientes: ${clientsRes.status}`);
-        if (!productsRes.ok) throw new Error(`Error al cargar productos: ${productsRes.status}`);
-        if (!paymentMethodsRes.ok) throw new Error(`Error al cargar formas de pago: ${paymentMethodsRes.status}`);
+  // --- Funciones de Carga de Datos Iniciales ---
 
-        const clientsData = await clientsRes.json();
-        const productsData = await productsRes.json();
-        const paymentMethodsData = await paymentMethodsRes.json();
-
-        // Important: Filter products based on 'referencia_producto' being available, as it's the PK
-        const validProducts = productsData.filter(p => p.activo && p.stock > 0 && p.referencia_producto);
-        console.log("Fetched Products Data (with PK):", validProducts);
-        setClients(clientsData);
-        setProducts(validProducts);
-        setPaymentMethods(paymentMethodsData);
-
-      } catch (err) {
-        console.error("Error fetching POS dependencies:", err);
-        setFetchError(err);
-      } finally {
-        setLoadingDependencies(false);
-        productSearchInputRef.current?.focus();
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    setProductError(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/productos/');
+      if (!response.ok) {
+        throw new Error(`Error al cargar productos: ${response.statusText}`);
       }
-    };
-
-    fetchAllDependencies();
+      const data = await response.json();
+      // MODIFICACION: Convertir precio_venta a número al cargar
+      const processedData = data.map(product => ({
+        ...product,
+        precio_venta: parseFloat(product.precio_venta) || 0 // Asegura que sea un número, o 0 si es inválido
+      }));
+      setProducts(processedData);
+      setFilteredProducts(processedData); // Inicialmente, todos los productos están filtrados
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setProductError("No se pudieron cargar los productos.");
+    } finally {
+      setLoadingProducts(false);
+    }
   }, []);
 
-  // --- Client Search Logic ---
+  const fetchClients = useCallback(async () => {
+    setLoadingClients(true);
+    setClientError(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/clientes/');
+      if (!response.ok) {
+        throw new Error(`Error al cargar clientes: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setClients(data);
+      setFilteredClients(data); // Inicialmente, todos los clientes están filtrados
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      setClientError("No se pudieron cargar los clientes.");
+    } finally {
+      setLoadingClients(false);
+    }
+  }, []);
+
+  const fetchPaymentMethods = useCallback(async () => {
+    setLoadingPaymentMethods(true);
+    setPaymentMethodError(null);
+    try {
+      // MODIFICACION: Cambiado a 'formas-pago' con guion
+      const response = await fetch('http://localhost:8000/api/formas_pago/'); 
+      if (!response.ok) {
+        throw new Error(`Error al cargar formas de pago: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setPaymentMethods(data);
+    } catch (err) {
+      console.error("Error fetching payment methods:", err);
+      setPaymentMethodError("No se pudieron cargar las formas de pago.");
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (clientSearchTerm.length > 1) {
-      setFilteredClients(
-        clients.filter(client =>
-          client.nombre.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-          client.email.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-          (client.telefono && client.telefono.includes(clientSearchTerm))
-        )
+    fetchProducts();
+    fetchClients();
+    fetchPaymentMethods();
+  }, [fetchProducts, fetchClients, fetchPaymentMethods]); // Dependencias para useCallback
+
+  // --- Lógica de Filtrado de Productos ---
+  useEffect(() => {
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      const filtered = products.filter(product =>
+        product.nombre.toLowerCase().includes(lowerCaseSearchTerm) ||
+        product.referencia_producto.toLowerCase().includes(lowerCaseSearchTerm)
       );
+      setFilteredProducts(filtered);
     } else {
-      setFilteredClients([]);
+      setFilteredProducts(products);
+    }
+  }, [searchTerm, products]);
+
+  // --- Lógica de Filtrado de Clientes ---
+  useEffect(() => {
+    if (clientSearchTerm) {
+      const lowerCaseSearchTerm = clientSearchTerm.toLowerCase();
+      const filtered = clients.filter(client =>
+        client.nombre.toLowerCase().includes(lowerCaseSearchTerm) ||
+        (client.email && client.email.toLowerCase().includes(lowerCaseSearchTerm)) || // Agregado check para email
+        (client.telefono && client.telefono.includes(lowerCaseSearchTerm)) // Agregado check para telefono
+      );
+      setFilteredClients(filtered);
+    } else {
+      setFilteredClients(clients);
     }
   }, [clientSearchTerm, clients]);
 
-  const handleClientSelect = (clientId) => {
-    setSelectedClient(clientId);
-    setClientSearchTerm(clients.find(c => c.id === clientId)?.nombre || '');
-    setFilteredClients([]);
-  };
 
-  // --- Product Search Logic ---
-  useEffect(() => {
-    if (productSearchTerm.length > 1) {
-      setFilteredProducts(
-        products.filter(product =>
-          product.nombre.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-          product.referencia_producto.toLowerCase().includes(productSearchTerm.toLowerCase())
-        )
-      );
-    } else {
-      setFilteredProducts([]);
-    }
-  }, [productSearchTerm, products]);
+  // --- Lógica del Carrito ---
 
-  // --- Add Product to Sale ---
-  const addProductToSale = (productToAdd) => {
-    console.log("Product selected for adding:", productToAdd);
-    // CRUCIAL: Check for 'referencia_producto' as it's the actual primary key
-    if (!productToAdd.referencia_producto) {
-        console.error("Error: Producto seleccionado no tiene una referencia_producto válida.", productToAdd);
-        setSaleError({ message: `No se pudo agregar el producto "${productToAdd.nombre}" porque no tiene una referencia válida.` });
-        return;
-    }
+  const handleAddProductToCart = (productToAdd) => {
+    setSaleMessage(null); // Limpiar mensajes al añadir producto
 
-    // Use 'referencia_producto' for finding existing items and for keys
-    const existingItemIndex = saleItems.findIndex(item => item.product_obj.referencia_producto === productToAdd.referencia_producto);
+    const existingItemIndex = cartItems.findIndex(item => item.product.referencia_producto === productToAdd.referencia_producto);
 
     if (existingItemIndex > -1) {
-      const updatedSaleItems = saleItems.map((item, index) => {
+      // Si el producto ya está en el carrito, incrementa la cantidad
+      const updatedCart = cartItems.map((item, index) => {
         if (index === existingItemIndex) {
           const newQuantity = item.quantity + 1;
           if (newQuantity > productToAdd.stock) {
-            setSaleError({ message: `No hay suficiente stock para ${productToAdd.nombre}. Stock disponible: ${productToAdd.stock}` });
-            return item;
+            setSaleMessage({ type: 'error', text: `Stock insuficiente para ${productToAdd.nombre}.` });
+            return item; // No actualizar si excede el stock
           }
+          // MODIFICACION: Asegurar que subtotal se calcule con números
+          const newSubtotal = parseFloat(newQuantity * productToAdd.precio_venta) || 0;
           return {
             ...item,
             quantity: newQuantity,
-            subtotal_item: parseFloat((newQuantity * item.product_obj.precio_costo).toFixed(2))
+            subtotal: newSubtotal,
           };
         }
         return item;
       });
-      setSaleItems(updatedSaleItems);
+      setCartItems(updatedCart);
     } else {
-      if (productToAdd.stock === 0) {
-        setSaleError({ message: `Producto "${productToAdd.nombre}" sin stock.` });
+      // Si el producto no está en el carrito, añádelo
+      if (productToAdd.stock <= 0) {
+        setSaleMessage({ type: 'error', text: `Producto "${productToAdd.nombre}" sin stock disponible.` });
         return;
       }
-      setSaleItems([
-        ...saleItems,
+      setCartItems([
+        ...cartItems,
         {
-          product_obj: { ...productToAdd }, // Shallow copy to ensure all properties are there
+          product: productToAdd,
           quantity: 1,
-          subtotal_item: parseFloat(productToAdd.precio_costo)
-        }
+          subtotal: parseFloat(productToAdd.precio_venta) || 0, // Inicia subtotal como número
+        },
       ]);
     }
-    setProductSearchTerm('');
-    setSaleError(null);
-    productSearchInputRef.current?.focus();
   };
 
-  // --- Adjust Item Quantity ---
-  const adjustItemQuantity = (productRef, delta) => { // Now expects 'referencia_producto'
-    setSaleItems(prevItems => {
-      const updatedItems = prevItems.map(item => {
-        if (item.product_obj.referencia_producto === productRef) { // Use 'referencia_producto' for matching
-          const newQuantity = item.quantity + delta;
-          if (newQuantity <= 0) {
-            return null;
-          }
-          if (newQuantity > item.product_obj.stock) {
-            setSaleError({ message: `No hay suficiente stock para ${item.product_obj.nombre}. Stock disponible: ${item.product_obj.stock}` });
-            return item;
-          }
-          setSaleError(null);
-          return {
-            ...item,
-            quantity: newQuantity,
-            subtotal_item: parseFloat((newQuantity * item.product_obj.precio_costo).toFixed(2))
-          };
+  const updateItemQuantity = (productRef, newQuantity) => {
+    setSaleMessage(null);
+    const updatedCart = cartItems.map(item => {
+      if (item.product.referencia_producto === productRef) {
+        if (newQuantity <= 0) {
+          // Si la cantidad es 0 o menos, remover el item
+          return null; // Marcar para eliminación
         }
-        return item;
-      }).filter(Boolean);
-
-      return updatedItems;
-    });
+        if (newQuantity > item.product.stock) {
+          setSaleMessage({ type: 'error', text: `No hay suficiente stock para ${item.product.nombre}. Max: ${item.product.stock}` });
+          return item;
+        }
+        // MODIFICACION: Asegurar que subtotal se calcule con números
+        const newSubtotal = parseFloat(newQuantity * item.product.precio_venta) || 0;
+        return {
+          ...item,
+          quantity: newQuantity,
+          subtotal: newSubtotal,
+        };
+      }
+      return item;
+    }).filter(Boolean); // Eliminar los items marcados como null
+    setCartItems(updatedCart);
   };
 
-  // --- Remove Item from Sale ---
-  const removeItemFromSale = (productRef) => { // Now expects 'referencia_producto'
-    setSaleItems(saleItems.filter(item => item.product_obj.referencia_producto !== productRef)); // Use 'referencia_producto' for filtering
-    setSaleError(null);
+  const removeItemFromCart = (productRef) => {
+    setSaleMessage(null);
+    setCartItems(cartItems.filter(item => item.product.referencia_producto !== productRef));
   };
 
-  // --- Calculate Total ---
-  useEffect(() => {
-    const newTotal = saleItems.reduce((acc, item) => acc + item.subtotal_item, 0);
-    setTotalAmount(parseFloat(newTotal.toFixed(2)));
-  }, [saleItems]);
-
-  // --- Clear Sale ---
-  const clearSale = () => {
-    setSelectedClient('');
-    setClientSearchTerm('');
-    setSaleItems([]);
-    setTotalAmount(0);
-    setSelectedPaymentMethod('');
-    setSaleError(null);
-    setSaleSuccessMessage('');
-    setLastGeneratedInvoice(null);
-    productSearchInputRef.current?.focus();
+  const calculateTotal = () => {
+    // MODIFICACION: Asegurar que la suma se hace con números válidos
+    return cartItems.reduce((acc, item) => acc + (parseFloat(item.subtotal) || 0), 0);
   };
 
-  // --- Process Sale (Submit Factura and DetalleVenta) ---
-  const processSale = async () => {
-    setSubmittingSale(true);
-    setSaleError(null);
-    setSaleSuccessMessage('');
-    setLastGeneratedInvoice(null);
+  const handleClearCart = () => {
+    setCartItems([]);
+    setSelectedClient(null);
+    setSelectedPaymentMethod(null);
+    setSaleMessage(null);
+    setSaleResult(null);
+    setShowSaleConfirmationModal(false);
+  };
 
-    if (!selectedClient) {
-      setSaleError({ message: 'Por favor, selecciona un cliente.' });
-      setSubmittingSale(false);
+  // --- Lógica de Procesamiento de Venta ---
+  const handleProcessSale = async () => {
+    if (cartItems.length === 0) {
+      setSaleMessage({ type: 'error', text: 'El carrito de compras está vacío.' });
       return;
     }
-    if (saleItems.length === 0) {
-      setSaleError({ message: 'No hay productos en la venta.' });
-      setSubmittingSale(false);
+    if (!selectedClient) {
+      setSaleMessage({ type: 'error', text: 'Por favor, selecciona un cliente.' });
       return;
     }
     if (!selectedPaymentMethod) {
-      setSaleError({ message: 'Por favor, selecciona una forma de pago.' });
-      setSubmittingSale(false);
+      setSaleMessage({ type: 'error', text: 'Por favor, selecciona una forma de pago.' });
       return;
     }
+
+    setProcessingSale(true);
+    setSaleMessage({ type: 'info', text: 'Procesando venta...' });
+
+    const saleData = {
+      cliente: selectedClient.id,
+      forma_pago: selectedPaymentMethod.id,
+      total: calculateTotal().toFixed(2), // Total ya es un número por calculateTotal()
+      estado: 'completada', // O el estado inicial que quieras (ej. 'pendiente')
+      // Si tienes un usuario autenticado en el frontend, podrías enviarlo así:
+      // usuario: ID_DEL_USUARIO_AUTENTICADO,
+      detalle_ventas: cartItems.map(item => ({
+        producto: item.product.referencia_producto, // Usar referencia_producto como PK del producto
+        cantidad: item.quantity,
+        // MODIFICACION: Asegurar que precio_unitario es número
+        precio_unitario: parseFloat(item.product.precio_venta) || 0,
+        // MODIFICACION: Asegurar que subtotal es número antes de toFixed
+        subtotal: (parseFloat(item.subtotal) || 0).toFixed(2),
+      })),
+    };
 
     try {
-      // 1. Create Factura
-      console.log("Attempting to create Factura with payload:", {
-          cliente: selectedClient,
-          forma_pago: selectedPaymentMethod,
-          total: totalAmount,
-          estado: 'completada',
-      });
-      const facturaResponse = await fetch('http://localhost:8000/api/facturas/', { // Adjust API endpoint if needed
+      const response = await fetch('http://localhost:8000/api/facturas/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cliente: selectedClient,
-          forma_pago: selectedPaymentMethod,
-          total: totalAmount,
-          estado: 'completada', // Assuming it's completed on processing
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`, // Si usas autenticación
+        },
+        body: JSON.stringify(saleData),
       });
 
-      if (!facturaResponse.ok) {
-        const errorDetail = await facturaResponse.json().catch(() => ({ detail: 'Unknown error or non-JSON response' }));
-        console.error("Factura creation error response:", facturaResponse.status, errorDetail);
-        throw new Error(`Error al crear factura: ${JSON.stringify(errorDetail.detail || errorDetail)}`);
-      }
-      const factura = await facturaResponse.json();
-      const facturaId = factura.id; // This will now correctly map to id_factura due to serializer change
-
-      // *** ADDED DEBUGGING ***
-      console.log(`Factura creada con ID: ${facturaId}`);
-      if (!facturaId) {
-          console.error("CRITICAL: facturaId is missing after Factura creation!", factura);
-          throw new Error("No se pudo obtener el ID de la factura creada.");
-      }
-      // **********************
-
-      // 2. Create DetalleVenta for each item
-      for (const item of saleItems) {
-        // CRUCIAL: Send 'referencia_producto' as the foreign key value for 'producto'
-        console.log(`Sending DetalleVenta for product: ${item.product_obj.nombre}, Ref: ${item.product_obj.referencia_producto}`);
-        // *** ADDED DEBUGGING ***
-        console.log(`DetalleVenta payload for ${item.product_obj.nombre}:`, {
-            factura: facturaId,
-            producto: item.product_obj.referencia_producto,
-            cantidad: item.quantity,
-            precio_unitario: item.product_obj.precio_costo,
-        });
-        // **********************
-
-        if (!item.product_obj.referencia_producto) {
-            console.error("Producto sin referencia_producto al enviar a DetalleVenta:", item.product_obj);
-            throw new Error(`Producto "${item.product_obj.nombre}" no tiene una referencia de producto válida para enviar.`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error al procesar venta:", errorData);
+        // Intentar obtener un mensaje de error más específico
+        let errorMessage = 'Error desconocido al procesar la venta.';
+        if (errorData && typeof errorData === 'object') {
+            if (errorData.non_field_errors) {
+                errorMessage = errorData.non_field_errors.join(' ');
+            } else if (errorData.detail) {
+                errorMessage = errorData.detail;
+            } else {
+                // Iterar sobre los errores de campo si existen
+                const fieldErrors = Object.keys(errorData).map(key => `${key}: ${errorData[key]}`).join('; ');
+                if (fieldErrors) {
+                    errorMessage = `Errores de validación: ${fieldErrors}`;
+                }
+            }
+        } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
         }
-
-        const detalleVentaResponse = await fetch('http://localhost:8000/api/detalle-ventas/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            factura: facturaId,
-            producto: item.product_obj.referencia_producto, // <--- THIS IS THE KEY CHANGE
-            cantidad: item.quantity,
-            precio_unitario: item.product_obj.precio_costo,
-          }),
-        });
-
-        if (!detalleVentaResponse.ok) {
-          const errorDetail = await detalleVentaResponse.json().catch(() => ({ detail: 'Unknown error or non-JSON response' }));
-          console.error(`Error al crear detalle de venta para ${item.product_obj.nombre}:`, detalleVentaResponse.status, errorDetail);
-          throw new Error(`Error al crear detalle de venta para ${item.product_obj.nombre}: ${JSON.stringify(errorDetail.detail || errorDetail)}`);
-        }
+        
+        throw new Error(errorMessage);
       }
 
-      const clientInfo = clients.find(c => c.id === selectedClient);
-      const paymentMethodInfo = paymentMethods.find(pm => pm.id === selectedPaymentMethod);
-
-      // Store invoice details for PDF generation
-      setLastGeneratedInvoice({
-        id: facturaId,
-        date: new Date().toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-        clientName: clientInfo ? clientInfo.nombre : 'Consumidor Final',
-        clientEmail: clientInfo ? clientInfo.email : 'N/A',
-        clientPhone: clientInfo ? clientInfo.telefono : 'N/A',
-        paymentMethod: paymentMethodInfo ? paymentMethodInfo.metodo : 'N/A',
-        items: saleItems.map(item => ({
-          name: item.product_obj.nombre,
-          ref: item.product_obj.referencia_producto,
-          qty: item.quantity,
-          unitPrice: item.product_obj.precio_costo,
-          subtotal: item.subtotal_item,
-        })),
-        total: totalAmount,
-      });
-
-      setSaleSuccessMessage(`Venta (Factura #${facturaId}) procesada exitosamente!`);
-      clearSale();
+      const result = await response.json();
+      setSaleResult(result); // Guarda la factura creada
+      setShowSaleConfirmationModal(true); // Muestra modal de confirmación
+      setSaleMessage({ type: 'success', text: `¡Venta procesada con éxito! Factura #${result.id_factura}` });
+      handleClearCart(); // Limpiar el carrito después de una venta exitosa
+      fetchProducts(); // Recargar productos para reflejar cambios de stock
 
     } catch (err) {
-      console.error("Error processing sale:", err);
-      let errorMessage = 'Ocurrió un error desconocido al procesar la venta.';
-      if (err.message) {
-          try {
-              const parsedError = JSON.parse(err.message);
-              // Handle potential nested error details from DRF, e.g., {"factura": ["This field is required."]}
-              if (parsedError.factura) {
-                  errorMessage = `Error en factura: ${parsedError.factura.join(', ')}`;
-              } else if (parsedError.producto) { // In case product error comes up again
-                  errorMessage = `Error en producto: ${parsedError.producto.join(', ')}`;
-              } else {
-                  errorMessage = err.message;
-              }
-          } catch (e) {
-              errorMessage = err.message;
-          }
-      }
-      setSaleError({ message: errorMessage });
+      console.error("Error en handleProcessSale:", err);
+      setSaleMessage({ type: 'error', text: `No se pudo procesar la venta: ${err.message || 'Error desconocido'}` });
     } finally {
-      setSubmittingSale(false);
+      setProcessingSale(false);
     }
   };
 
-
-  // --- PDF Generation and Sharing Logic ---
-  const generateAndSharePDF = (invoiceDetails) => {
-    if (!invoiceDetails) {
-      alert("No hay detalles de factura para generar el PDF.");
-      return;
-    }
-
-    const doc = new jsPDF();
-
-    doc.setFont("helvetica");
-
-    // Title
-    doc.setFontSize(22);
-    doc.text("Factura de Venta", 105, 20, null, null, "center");
-
-    // Company Info (replace with your company details)
-    doc.setFontSize(10);
-    doc.text("Mi Tienda POS", 14, 30);
-    doc.text("Dirección: Calle Ficticia 123", 14, 35);
-    doc.text("Teléfono: +57 310 123 4567", 14, 40);
-    doc.text("Email: info@mitienda.com", 14, 45);
-
-    // Invoice Details & Client Info
-    doc.setFontSize(12);
-    doc.text(`Factura No: ${invoiceDetails.id}`, 140, 30);
-    doc.text(`Fecha: ${invoiceDetails.date}`, 140, 37);
-
-    doc.setFontSize(10);
-    doc.text("Detalles del Cliente:", 14, 55);
-    doc.text(`Nombre: ${invoiceDetails.clientName}`, 14, 60);
-    if (invoiceDetails.clientEmail && invoiceDetails.clientEmail !== 'N/A') {
-        doc.text(`Email: ${invoiceDetails.clientEmail}`, 14, 65);
-    }
-    if (invoiceDetails.clientPhone && invoiceDetails.clientPhone !== 'N/A') {
-        doc.text(`Teléfono: ${invoiceDetails.clientPhone}`, 14, 70);
-    }
-    doc.text(`Forma de Pago: ${invoiceDetails.paymentMethod}`, 14, 75);
-
-    // Table for Sale Items
-    const tableColumn = ["Cant.", "Producto", "Referencia", "P. Unitario", "Subtotal"];
-    const tableRows = [];
-
-    invoiceDetails.items.forEach(item => {
-      const itemData = [
-        item.qty,
-        item.name,
-        item.ref,
-        `$${item.unitPrice.toFixed(2)}`,
-        `$${item.subtotal.toFixed(2)}`,
-      ];
-      tableRows.push(itemData);
-    });
-
-    // AutoTable plugin adds the table
-    doc.autoTable(tableColumn, tableRows, {
-      startY: 85,
-      headStyles: { fillColor: [52, 152, 219] },
-      styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: {
-        0: { cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 25, halign: 'right' },
-        4: { cellWidth: 25, halign: 'right' },
-      },
-      didParseCell: function(data) {
-        if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
-          data.cell.styles.fontStyle = 'bold';
-        }
-      },
-    });
-
-    const finalY = doc.autoTable.previous.finalY;
-
-    // Totals
-    doc.setFontSize(12);
-    doc.text(`Total: $${invoiceDetails.total.toFixed(2)}`, 195, finalY + 15, null, null, "right");
-
-    // Thank You message
-    doc.setFontSize(10);
-    doc.text("¡Gracias por tu compra!", 105, finalY + 30, null, null, "center");
-
-    const filename = `Factura_${invoiceDetails.id}.pdf`;
-    doc.save(filename);
-
-    const whatsappMessage = `¡Hola ${invoiceDetails.clientName}! Aquí está tu factura #${invoiceDetails.id} de Mi Tienda POS. Total: $${invoiceDetails.total.toFixed(2)}. Puedes descargarla adjunta.`;
-    const whatsappUrl = `https://wa.me/${invoiceDetails.clientPhone || ''}?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappUrl, '_blank');
-
-    const emailSubject = `Tu Factura #${invoiceDetails.id} de Mi Tienda POS`;
-    const emailBody = `Hola ${invoiceDetails.clientName},\n\nAdjunto encontrarás tu factura #${invoiceDetails.id} por un total de $${invoiceDetails.total.toFixed(2)}.\n\n¡Gracias por tu compra!\n\nSaludos,\nMi Tienda POS`;
-    const emailUrl = `mailto:${invoiceDetails.clientEmail || ''}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    window.open(emailUrl, '_blank');
-  };
-
-
-  if (loadingDependencies) {
-    return (
-      <div className="page-content pos-page-container">
-        <div className="loading-message">
-          <span role="img" aria-label="loading">⏳</span> Cargando datos para el POS...
-        </div>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="page-content pos-page-container">
-        <div className="error-message">
-          <span role="img" aria-label="error">❌</span> Error: {fetchError.message}
-          <p>Asegúrate de que tus APIs de clientes, productos y formas de pago estén funcionando.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="page-content pos-page-container">
-      <h2 className="page-heading pos-heading">🛒 Punto de Venta</h2>
-
-      {saleSuccessMessage && (
-        <div className="alert-message success-message">
-          <span role="img" aria-label="success">✅</span> {saleSuccessMessage}
-          {lastGeneratedInvoice && (
-            <div className="share-options-container">
-              <button
-                className="share-btn"
-                onClick={() => generateAndSharePDF(lastGeneratedInvoice)}
-              >
-                <span role="img" aria-label="pdf">📄</span> Generar PDF y Compartir
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-      {saleError && saleError.message && (
-        <div className="alert-message error-message">
-          <span role="img" aria-label="error">❌</span> {saleError.message}
+    <div className="pos-container">
+      {/* Sección de Mensajes Globales */}
+      {saleMessage && (
+        <div className={`global-message ${saleMessage.type}`}>
+          {saleMessage.text}
         </div>
       )}
 
-      <div className="pos-main-grid">
-        {/* Left Column: Client & Product Input */}
-        <div className="pos-left-column">
-          <div className="pos-section client-section">
-            <label htmlFor="client-search" className="pos-label">
-              Cliente: <span className="required-field">*</span>
-            </label>
-            <input
-              type="text"
-              id="client-search"
-              className="form-input pos-input"
-              placeholder="Buscar o seleccionar cliente"
-              value={clientSearchTerm}
-              onChange={(e) => {
-                setClientSearchTerm(e.target.value);
-                setSelectedClient('');
-              }}
-            />
-            {filteredClients.length > 0 && clientSearchTerm.length > 1 && (
-              <ul className="pos-search-results">
-                {filteredClients.map(client => (
-                  <li key={client.id} onClick={() => handleClientSelect(client.id)}>
-                    {client.nombre} ({client.email})
-                  </li>
-                ))}
-              </ul>
-            )}
-            {selectedClient && (
-              <p className="pos-selected-info">
-                Cliente Seleccionado: <strong>{clients.find(c => c.id === selectedClient)?.nombre}</strong>
-              </p>
-            )}
-            {!selectedClient && (
+      {/* Sección de Selección de Productos */}
+      <div className="pos-section product-selection">
+        <h2>Productos</h2>
+        <input
+          type="text"
+          placeholder="Buscar producto por nombre o referencia..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+        {loadingProducts && <p className="loading-text">Cargando productos...</p>}
+        {productError && <p className="error-message">{productError}</p>}
+        <div className="product-list">
+          {filteredProducts.length === 0 && !loadingProducts && !productError && <p>No se encontraron productos.</p>}
+          {filteredProducts.map(product => (
+            <div key={product.referencia_producto} className="product-card">
+              <img
+                src={getProductImageUrl(product.imagen)}
+                alt={product.nombre}
+                className="product-image"
+              />
+              <div className="product-info">
+                <h3>{product.nombre}</h3>
+                <p>Ref: {product.referencia_producto}</p>
+                {/* Asegúrate que product.precio_venta ya es un número válido aquí */}
+                <p>Precio: **${product.precio_venta.toFixed(2)}**</p>
+                <p>Stock: {product.stock}</p>
+              </div>
               <button
-                className="pos-quick-select-btn"
-                onClick={() => handleClientSelect(clients.find(c => c.nombre.toLowerCase() === 'consumidor final')?.id || clients[0]?.id)}
+                onClick={() => handleAddProductToCart(product)}
+                disabled={product.stock <= 0}
+                className="add-to-cart-button"
               >
-                Consumidor Final
+                {product.stock <= 0 ? 'Sin Stock' : 'Añadir al Carrito'}
               </button>
-            )}
-          </div>
-
-          <div className="pos-section product-search-section">
-            <label htmlFor="product-search" className="pos-label">
-              Buscar Producto:
-            </label>
-            <input
-              ref={productSearchInputRef}
-              type="text"
-              id="product-search"
-              className="form-input pos-input"
-              placeholder="Referencia o Nombre del Producto"
-              value={productSearchTerm}
-              onChange={(e) => setProductSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && filteredProducts.length > 0) {
-                  addProductToSale(filteredProducts[0]);
-                }
-              }}
-            />
-            {filteredProducts.length > 0 && productSearchTerm.length > 1 && (
-              <ul className="pos-search-results product-results">
-                {filteredProducts.map(product => (
-                  <li key={product.referencia_producto} onClick={() => addProductToSale(product)} className="product-search-item">
-                    {/* Add image display here */}
-                    {product.imagen && (
-                        <img
-                            src={product.imagen}
-                            alt={product.nombre}
-                            className="product-thumbnail"
-                        />
-                    )}
-                    <div className="product-info-text">
-                        <span className="product-name-ref">{product.nombre} (Ref: {product.referencia_producto})</span>
-                        <span className="product-stock-price">Stock: {product.stock} | Precio: ${product.precio_costo}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Sale Items, Total, Payment, Actions */}
-        <div className="pos-right-column">
-          <div className="pos-section sale-items-section">
-            <h3 className="section-title">Detalle de Venta</h3>
-            {saleItems.length === 0 ? (
-              <p className="empty-state">Agrega productos para iniciar la venta.</p>
-            ) : (
-              <ul className="sale-items-list">
-                {saleItems.map(item => (
-                  <li key={item.product_obj.referencia_producto} className="sale-item"> {/* Use referencia_producto as key */}
-                    <div className="item-details">
-                      {item.product_obj.imagen && (
-                          <img
-                              src={item.product_obj.imagen}
-                              alt={item.product_obj.nombre}
-                              className="item-thumbnail"
-                          />
-                      )}
-                      <div className="item-name-qty">
-                        <span className="item-name">{item.product_obj.nombre}</span>
-                        <span className="item-ref">(Ref: {item.product_obj.referencia_producto})</span>
-                        <span className="item-price"> ${item.product_obj.precio_costo}</span>
-                      </div>
-                    </div>
-                    <div className="item-actions">
-                      <button onClick={() => adjustItemQuantity(item.product_obj.referencia_producto, -1)} className="quantity-btn">-</button>
-                      <span className="item-quantity">{item.quantity}</span>
-                      <button onClick={() => adjustItemQuantity(item.product_obj.referencia_producto, 1)} className="quantity-btn">+</button>
-                      <span className="item-subtotal">Total: ${item.subtotal_item.toFixed(2)}</span>
-                      <button onClick={() => removeItemFromSale(item.product_obj.referencia_producto)} className="remove-item-btn">
-                        <span role="img" aria-label="remove">🗑️</span>
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="pos-section summary-section">
-            <div className="summary-line">
-              <span>Subtotal:</span>
-              <span className="summary-value">${totalAmount.toFixed(2)}</span>
             </div>
-            <div className="summary-line total-line">
-              <span>Total:</span>
-              <span className="summary-value">${totalAmount.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="pos-section payment-section">
-            <label htmlFor="payment-method" className="pos-label">
-              Forma de Pago: <span className="required-field">*</span>
-            </label>
-            <select
-              id="payment-method"
-              className="form-select pos-select"
-              value={selectedPaymentMethod}
-              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              required
-            >
-              <option value="">-- Selecciona --</option>
-              {paymentMethods.map(method => (
-                <option key={method.id} value={method.id}>{method.metodo}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="pos-actions">
-            <button onClick={clearSale} className="pos-action-btn cancel-btn" disabled={submittingSale}>
-              <span role="img" aria-label="cancel">🗑️</span> Cancelar Venta
-            </button>
-            <button onClick={processSale} className="pos-action-btn process-btn" disabled={submittingSale || saleItems.length === 0 || !selectedClient || !selectedPaymentMethod}>
-              {submittingSale ? (
-                <>
-                  <span role="img" aria-label="processing">⚙️</span> Procesando...
-                </>
-              ) : (
-                <>
-                  <span role="img" aria-label="process">💰</span> Procesar Venta
-                </>
-              )}
-            </button>
-          </div>
+          ))}
         </div>
       </div>
+
+      {/* Sección del Carrito de Compras */}
+      <div className="pos-section cart-details">
+        <h2>Carrito de Compras</h2>
+        {cartItems.length === 0 ? (
+          <p className="empty-cart-message">El carrito está vacío. Añade productos para empezar.</p>
+        ) : (
+          <>
+            <div className="cart-item-list">
+              {cartItems.map(item => (
+                <div key={item.product.referencia_producto} className="cart-item">
+                  <img
+                    src={getProductImageUrl(item.product.imagen)}
+                    alt={item.product.nombre}
+                    className="cart-item-image"
+                  />
+                  <div className="item-info">
+                    <h3>{item.product.nombre}</h3>
+                    <p>Cant: {item.quantity}</p>
+                    {/* Asegúrate que item.product.precio_venta y item.subtotal ya son números válidos */}
+                    <p>Unitario: ${item.product.precio_venta.toFixed(2)}</p>
+                    <p>Subtotal: ${item.subtotal.toFixed(2)}</p>
+                  </div>
+                  <div className="item-quantity-controls">
+                    <button onClick={() => updateItemQuantity(item.product.referencia_producto, item.quantity - 1)}>-</button>
+                    <span>{item.quantity}</span>
+                    <button onClick={() => updateItemQuantity(item.product.referencia_producto, item.quantity + 1)}>+</button>
+                    <button className="remove-button" onClick={() => removeItemFromCart(item.product.referencia_producto)}>X</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="cart-summary">
+              <h3>Total Carrito: **${calculateTotal().toFixed(2)}**</h3>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Sección de Controles de Venta (Cliente y Forma de Pago) */}
+      <div className="pos-section sale-controls">
+        <h2>Detalles de la Venta</h2>
+        <div className="control-group">
+          <label htmlFor="client-select">Cliente:</label>
+          <input
+            type="text"
+            placeholder="Buscar o seleccionar cliente..."
+            value={clientSearchTerm}
+            onChange={(e) => setClientSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {loadingClients && <p className="loading-text">Cargando clientes...</p>}
+          {clientError && <p className="error-message">{clientError}</p>}
+          {/* Usamos un select para el cliente para facilitar la selección después de la búsqueda */}
+          <select
+            id="client-select"
+            value={selectedClient ? selectedClient.id : ''}
+            onChange={(e) => setSelectedClient(clients.find(c => c.id === parseInt(e.target.value)))}
+            className="select-input"
+          >
+            <option value="">Seleccionar Cliente</option>
+            {filteredClients.map(client => (
+              <option key={client.id} value={client.id}>{client.nombre} ({client.email || 'N/A'})</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="payment-method-select">Forma de Pago:</label>
+          {loadingPaymentMethods && <p className="loading-text">Cargando formas de pago...</p>}
+          {paymentMethodError && <p className="error-message">{paymentMethodError}</p>}
+          <select
+            id="payment-method-select"
+            value={selectedPaymentMethod ? selectedPaymentMethod.id : ''}
+            onChange={(e) => setSelectedPaymentMethod(paymentMethods.find(pm => pm.id === parseInt(e.target.value)))}
+            className="select-input"
+          >
+            <option value="">Seleccionar Forma de Pago</option>
+            {paymentMethods.map(pm => (
+              <option key={pm.id} value={pm.id}>{pm.metodo}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="action-buttons">
+          <button onClick={handleClearCart} disabled={cartItems.length === 0} className="clear-cart-button">
+            Vaciar Carrito
+          </button>
+          <button
+            onClick={handleProcessSale}
+            disabled={processingSale || cartItems.length === 0 || !selectedClient || !selectedPaymentMethod}
+            className="process-sale-button"
+          >
+            {processingSale ? 'Procesando...' : `Generar Factura ($${calculateTotal().toFixed(2)})`}
+          </button>
+        </div>
+      </div>
+
+      {/* Modal de Confirmación de Venta */}
+      {showSaleConfirmationModal && saleResult && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h3>Factura Generada con Éxito</h3>
+            <p>ID de Factura: **{saleResult.id_factura}**</p>
+            {/* Asegúrate que saleResult.total es número válido */}
+            <p>Total: **${parseFloat(saleResult.total).toFixed(2)}**</p>
+            {/* Estos campos (cliente_nombre, forma_pago_nombre) se asumen que el backend los devuelve en la respuesta de la factura */}
+            <p>Cliente: {saleResult.cliente_nombre || 'N/A'}</p>
+            <p>Forma de Pago: {saleResult.forma_pago_nombre || 'N/A'}</p>
+            <button onClick={() => setShowSaleConfirmationModal(false)} className="close-modal-button">Cerrar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

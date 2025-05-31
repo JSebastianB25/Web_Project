@@ -1,8 +1,12 @@
+// web-client/src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
+import './index.css'; // Tu CSS global, donde limpiamos las directivas de Tailwind
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+
+// ¡¡¡AÑADE ESTA LÍNEA AQUÍ!!!
+import 'bootstrap/dist/css/bootstrap.min.css'; // Importa el CSS de Bootstrap
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -1,108 +1,57 @@
-// src/components/Navbar.js
-import "./App.css";
-import React, { useState, useEffect, useRef } from "react";
-import { Link } from 'react-router-dom'; // Make sure you have react-router-dom installed
+// web-client/src/Navbar.js
 
-const Navbar = () => {
-  const [openMenu, setOpenMenu] = useState(null);
-  const navRef = useRef(null); // Para detectar clics fuera
+import React from 'react';
+// Importamos Navbar de react-bootstrap como BSNavbar para evitar conflicto de nombres con nuestro componente 'Navbar'
+import { Navbar as BSNavbar, Nav, Container } from 'react-bootstrap'; 
+import { LinkContainer } from 'react-router-bootstrap'; // Necesario para integrar react-router-dom con Nav.Link
 
-  const toggleMenu = (menu) => {
-    setOpenMenu(openMenu === menu ? null : menu);
-  };
-
-  // Cerrar menú si se hace clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (navRef.current && !navRef.current.contains(event.target)) {
-        setOpenMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Helper to close the dropdown when a sub-item is clicked
-  const handleMenuItemClick = () => {
-    setOpenMenu(null);
-  };
-
-  const menuItems = [
-    {
-      label: "Productos",
-      key: "productos",
-      subItems: [
-        { label: "Crear Productos", href: "/crear-productos" },
-        { label: "Editar Productos", href: "/editar-productos" },
-        { label: "Eliminar Productos", href: "/eliminar-productos" },
-      ],
-    },
-    {
-      label: "Gestionar Accesos",
-      key: "accesos",
-      subItems: [
-        { label: "Roles", href: "/roles" },
-        { label: "Permisos", href: "/permisos" },
-        { label: "Usuarios", href: "/usuarios" },
-      ],
-    },
-    {
-      label: "Ventas",
-      key: "ventas",
-      subItems: [        
-        { label: "Realizar Venta", href: "/pos" },
-        { label: "Facturas", href: "/facturas" },
-        { label: "Detalle Venta", href: "/detalles-venta" },
-      ],
-    },
-    {
-      label: "Administrar",
-      key: "administrar",
-      subItems: [
-        { label: "Clientes", href: "/clientes" },
-        { label: "Formas de Pago", href: "/formas-pago" },
-        { label: "Categorías", href: "/categorias" },
-        { label: "Proveedores", href: "/proveedores" },
-      ],
-    },
-  ];
-
+// Este es TU COMPONENTE Navbar
+const Navbar = () => { 
   return (
-    <nav className="navbar" ref={navRef}>
-      <div className="navbar-logo">
-        <Link to="/" onClick={handleMenuItemClick}>🚀 Gestor de Inventarios </Link> {/* Changed to Link */}
-      </div>
-      <ul className="navbar-menu">
-        <li>
-          <Link to="/" className="navbar-item" onClick={handleMenuItemClick}>Inicio</Link> {/* Changed to Link */}
-        </li>
+    // Aquí usamos el componente Navbar de react-bootstrap, importado como BSNavbar
+    <BSNavbar bg="dark" variant="dark" expand="lg">
+      <Container>
+        {/* Marca/Logo de la aplicación, que lleva a la página de inicio */}
+        <LinkContainer to="/">
+          <BSNavbar.Brand>Gestor de Inventarios</BSNavbar.Brand>
+        </LinkContainer>
 
-        {menuItems.map((item) => (
-          <li key={item.key} className={`navbar-item-dropdown ${openMenu === item.key ? "open" : ""}`}>
-            <button
-              onClick={() => toggleMenu(item.key)}
-              className="navbar-item dropdown-toggle"
-              aria-expanded={openMenu === item.key}
-              aria-controls={`dropdown-${item.key}`}
-            >
-              {item.label} <span className="dropdown-arrow">▼</span>
-            </button>
-            {openMenu === item.key && (
-              <ul className="dropdown-menu" id={`dropdown-${item.key}`}>
-                {item.subItems.map((subItem) => (
-                  <li key={subItem.href}>
-                    {/* Keep <a> for now as requested, but recommend changing to Link for internal routes */}
-                    <a href={subItem.href} className="dropdown-item" onClick={handleMenuItemClick}>{subItem.label}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-    </nav>
+        {/* Botón para colapsar/expandir el menú en dispositivos pequeños */}
+        <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
+
+        {/* Contenido del menú */}
+        <BSNavbar.Collapse id="basic-navbar-nav">
+          <Nav className="me-auto"> 
+            <LinkContainer to="/">
+              <Nav.Link>Inicio</Nav.Link>
+            </LinkContainer>
+
+            <LinkContainer to="/productos/agregar">
+              <Nav.Link>Agregar Producto</Nav.Link>
+            </LinkContainer>
+            
+            {/* Enlace para la página de Gestionar Marcas */}
+            <LinkContainer to="/marcas">
+              <Nav.Link>Gestionar Marcas</Nav.Link>
+            </LinkContainer>
+
+            {/* --- NUEVO ENLACE A PROVEEDORES --- */}
+            <LinkContainer to="/proveedores">
+              <Nav.Link>Gestionar Proveedores</Nav.Link>
+            </LinkContainer>
+
+            {/* --- NUEVO ENLACE A CATEGORÍAS --- */}
+            <LinkContainer to="/categorias">
+              <Nav.Link>Gestionar Categorías</Nav.Link>
+            </LinkContainer>
+            {/* --- NUEVO ENLACE A FORMAS DE PAGO --- */}
+            <LinkContainer to="/formas-pago">
+              <Nav.Link>Gestionar Formas de Pago</Nav.Link> 
+            </LinkContainer>
+          </Nav>
+        </BSNavbar.Collapse>
+      </Container>
+    </BSNavbar>
   );
 };
 

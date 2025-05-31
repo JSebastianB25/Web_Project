@@ -1,492 +1,344 @@
-// src/pages/AgregarProductoPage.js
+// web-client/src/pages/AgregarProductoPage.js
+
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+// Importa los componentes de react-bootstrap que vamos a usar
+import {
+  Container,
+  Form,
+  Button,
+  Row,
+  Col,
+  Alert,
+  Spinner,
+  Card,
+  InputGroup
+} from 'react-bootstrap'; // Importamos lo necesario de react-bootstrap
+
+const API_BASE_URL = 'http://localhost:8000/api'; // Asegúrate que esta URL es correcta
 
 const AgregarProductoPage = () => {
-  const [newProduct, setNewProduct] = useState({
+  const [formData, setFormData] = useState({
     referencia_producto: '',
     nombre: '',
     descripcion: '',
     precio_costo: '',
+    precio_sugerido_venta: '',
     stock: '',
-    proveedor: '',
-    categoria: '',
+    proveedor: '', // ID del proveedor
+    categoria: '', // ID de la categoría
     imagen: '',
     activo: true,
   });
 
   const [proveedores, setProveedores] = useState([]);
   const [categorias, setCategorias] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const fetchDependencies = async () => {
+    const fetchDropdownData = async () => {
       try {
-        const proveedoresResponse = await fetch('http://localhost:8000/api/proveedores/');
-        if (!proveedoresResponse.ok) throw new Error(`Error al cargar proveedores: ${proveedoresResponse.status}`);
-        const proveedoresData = await proveedoresResponse.json();
-        setProveedores(proveedoresData);
-
-        const categoriasResponse = await fetch('http://localhost:8000/api/categorias/');
-        if (!categoriasResponse.ok) throw new Error(`Error al cargar categorías: ${categoriasResponse.status}`);
-        const categoriasData = await categoriasResponse.json();
-        setCategorias(categoriasData);
-
+        const [proveedoresRes, categoriasRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/proveedores/`),
+          axios.get(`${API_BASE_URL}/categorias/`),
+        ]);
+        setProveedores(proveedoresRes.data);
+        setCategorias(categoriasRes.data);
       } catch (err) {
-        console.error("Error al cargar dependencias:", err);
-        setError(err);
+        console.error('Error al cargar datos para los dropdowns:', err);
+        setError('Error al cargar proveedores o categorías. Por favor, intenta recargar la página.');
       } finally {
-        setLoading(false);
+        setLoadingDropdowns(false);
       }
     };
 
-    fetchDependencies();
+    fetchDropdownData();
   }, []);
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setNewProduct(prevProduct => ({
-      ...prevProduct,
+    setFormData((prevData) => ({
+      ...prevData,
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    setSuccessMessage('');
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-    if (!newProduct.referencia_producto || !newProduct.nombre || newProduct.precio_costo === '' || newProduct.stock === '' || !newProduct.proveedor || !newProduct.categoria) {
-      setError({ message: 'Por favor, completa todos los campos obligatorios.' });
-      setSubmitting(false);
-      return;
-    }
-
-    const productToSend = {
-      ...newProduct,
-      // Ensure numeric values are actually numbers, even if input type="number"
-      precio_costo: parseFloat(newProduct.precio_costo),
-      stock: parseInt(newProduct.stock, 10),
+    const dataToSend = {
+      ...formData,
+      precio_costo: parseFloat(formData.precio_costo),
+      precio_sugerido_venta: parseFloat(formData.precio_sugerido_venta),
+      stock: parseInt(formData.stock, 10),
+      proveedor: formData.proveedor,
+      categoria: formData.categoria,
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/productos/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer YOUR_AUTH_TOKEN` // Uncomment if needed
-        },
-        body: JSON.stringify(productToSend),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.referencia_producto ? `Referencia de producto ya existe: ${errorData.referencia_producto[0]}` : `Error al agregar producto: ${JSON.stringify(errorData)}`;
-        throw new Error(errorMessage);
-      }
-
-      const addedProduct = await response.json();
-      setSuccessMessage(`Producto "${addedProduct.nombre}" agregado exitosamente.`);
-
-      // Reset the form after successful submission
-      setNewProduct({
+      await axios.post(`${API_BASE_URL}/productos/`, dataToSend);
+      setSuccess('Producto agregado exitosamente!');
+      // Limpiar el formulario después del éxito
+      setFormData({
         referencia_producto: '',
         nombre: '',
         descripcion: '',
         precio_costo: '',
+        precio_sugerido_venta: '',
         stock: '',
         proveedor: '',
         categoria: '',
         imagen: '',
         activo: true,
       });
-
     } catch (err) {
-      console.error("Error adding product:", err);
-      setError(err);
+      console.error('Error al agregar producto:', err.response ? err.response.data : err.message);
+      const errorMsg = err.response && err.response.data
+        ? Object.values(err.response.data).flat().join(' ')
+        : 'Error al agregar el producto. Inténtalo de nuevo.';
+      setError(errorMsg);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="page-content" style={styles.container}>
-        <div style={styles.loadingMessage}>
-          <span role="img" aria-label="loading">⏳</span> Cargando proveedores y categorías...
-        </div>
-      </div>
-    );
-  }
+  const handleClear = () => {
+    setFormData({
+      referencia_producto: '',
+      nombre: '',
+      descripcion: '',
+      precio_costo: '',
+      precio_sugerido_venta: '',
+      stock: '',
+      proveedor: '',
+      categoria: '',
+      imagen: '',
+      activo: true,
+    });
+    setError('');
+    setSuccess('');
+  };
 
   return (
-    <div className="page-content" style={styles.container}>
-      <h2 style={styles.heading}>➕ Nuevo Artículo al Inventario</h2>
+    <Container className="my-4"> {/* Agregamos margen vertical */}
+      <Card className="shadow-lg rounded-lg"> {/* Usamos Card de react-bootstrap para un efecto de "Paper" */}
+        <Card.Body className="p-4 p-md-5">
+          <h1 className="text-center mb-4 text-primary fw-bold border-bottom pb-2">
+            Agregar Nuevo Producto
+          </h1>
 
-      {successMessage && (
-        <div style={styles.successMessage}>
-          <span role="img" aria-label="success">✅</span> {successMessage}
-        </div>
-      )}
-      {error && error.message && (
-        <div style={styles.errorMessage}>
-          <span role="img" aria-label="error">❌</span> {error.message}
-        </div>
-      )}
+          {/* Mensajes de éxito/error */}
+          {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
+          {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.formGrid}>
-          {/* Columna 1: Campos principales */}
-          <div style={styles.column}>
-            <div style={styles.formGroup}>
-              <label htmlFor="referencia_producto" style={styles.label}>
-                Referencia: <span style={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                id="referencia_producto"
-                name="referencia_producto"
-                value={newProduct.referencia_producto}
-                onChange={handleInputChange}
-                required
-                style={styles.input}
-                placeholder="Código único"
-              />
+          {loadingDropdowns ? (
+            <div className="d-flex flex-column align-items-center justify-content-center" style={{ height: '200px' }}>
+              <Spinner animation="border" variant="primary" className="mb-2" style={{ width: '3rem', height: '3rem' }} />
+              <p className="text-secondary">Cargando datos esenciales...</p>
             </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="nombre" style={styles.label}>
-                Nombre: <span style={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                id="nombre"
-                name="nombre"
-                value={newProduct.nombre}
-                onChange={handleInputChange}
-                required
-                style={styles.input}
-                placeholder="Nombre del producto"
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="precio_costo" style={styles.label}>
-                Precio Costo: <span style={styles.required}>*</span>
-              </label>
-              <input
-                type="number"
-                id="precio_costo"
-                name="precio_costo"
-                value={newProduct.precio_costo}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                required
-                style={styles.input}
-                placeholder="0.00"
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="stock" style={styles.label}>
-                Stock Inicial: <span style={styles.required}>*</span>
-              </label>
-              <input
-                type="number"
-                id="stock"
-                name="stock"
-                value={newProduct.stock}
-                onChange={handleInputChange}
-                min="0"
-                required
-                style={styles.input}
-                placeholder="0"
-              />
-            </div>
-          </div>
+          ) : (
+            <Form onSubmit={handleSubmit}>
+              <Row className="g-3 mb-4"> {/* Usamos Row y Col de react-bootstrap para el grid */}
+                <Col md={6}> {/* Media devices: 6 columnas, ocupa la mitad */}
+                  <Form.Group controlId="formReferenciaProducto">
+                    <Form.Label>Referencia del Producto <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="referencia_producto"
+                      value={formData.referencia_producto}
+                      onChange={handleChange}
+                      required
+                      placeholder="Ej: PROD001"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formNombreProducto">
+                    <Form.Label>Nombre del Producto <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={handleChange}
+                      required
+                      placeholder="Ej: Laptop Gamer X"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}> {/* Ocupa todo el ancho en todas las pantallas */}
+                  <Form.Group controlId="formDescripcion">
+                    <Form.Label>Descripción</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={4}
+                      name="descripcion"
+                      value={formData.descripcion}
+                      onChange={handleChange}
+                      placeholder="Una breve descripción del producto..."
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}> {/* 3 columnas en pantallas medianas */}
+                  <Form.Group controlId="formPrecioCosto">
+                    <Form.Label>Precio de Costo <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="precio_costo"
+                      value={formData.precio_costo}
+                      onChange={handleChange}
+                      required
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group controlId="formPrecioSugeridoVenta">
+                    <Form.Label>Precio Sugerido de Venta <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="precio_sugerido_venta"
+                      value={formData.precio_sugerido_venta}
+                      onChange={handleChange}
+                      required
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group controlId="formStock">
+                    <Form.Label>Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="stock"
+                      value={formData.stock}
+                      onChange={handleChange}
+                      required
+                      placeholder="0"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formProveedor">
+                    <Form.Label>Proveedor <span className="text-danger">*</span></Form.Label>
+                    <Form.Select
+                      name="proveedor"
+                      value={formData.proveedor}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Selecciona un proveedor</option>
+                      {proveedores.map((prov) => (
+                        <option key={prov.id} value={prov.id}>
+                          {prov.nombre}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formCategoria">
+                    <Form.Label>Categoría <span className="text-danger">*</span></Form.Label>
+                    <Form.Select
+                      name="categoria"
+                      value={formData.categoria}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Selecciona una categoría</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nombre}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group controlId="formImagen">
+                    <Form.Label>URL de Imagen (opcional)</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="imagen"
+                      value={formData.imagen}
+                      onChange={handleChange}
+                      placeholder="Ej: http://ejemplo.com/imagen.jpg"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Check
+                    type="checkbox"
+                    id="formActivo"
+                    name="activo"
+                    label="Producto Activo"
+                    checked={formData.activo}
+                    onChange={handleChange}
+                    className="mt-2"
+                  />
+                </Col>
+              </Row>
 
-          {/* Columna 2: Detalles y Foreign Keys */}
-          <div style={styles.column}>
-            <div style={styles.formGroup}>
-              <label htmlFor="proveedor" style={styles.label}>
-                Proveedor: <span style={styles.required}>*</span>
-              </label>
-              <select
-                id="proveedor"
-                name="proveedor"
-                value={newProduct.proveedor}
-                onChange={handleInputChange}
-                required
-                style={styles.select}
-              >
-                <option value="">-- Selecciona --</option>
-                {proveedores.map(prov => (
-                  <option key={prov.id} value={prov.id}>{prov.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="categoria" style={styles.label}>
-                Categoría: <span style={styles.required}>*</span>
-              </label>
-              <select
-                id="categoria"
-                name="categoria"
-                value={newProduct.categoria}
-                onChange={handleInputChange}
-                required
-                style={styles.select}
-              >
-                <option value="">-- Selecciona --</option>
-                {categorias.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="imagen" style={styles.label}>
-                URL Imagen (opcional):
-              </label>
-              <input
-                type="text"
-                id="imagen"
-                name="imagen"
-                value={newProduct.imagen}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="Enlace a la imagen"
-              />
-            </div>
-            <div style={styles.checkboxContainer}>
-              <input
-                type="checkbox"
-                id="activo"
-                name="activo"
-                checked={newProduct.activo}
-                onChange={handleInputChange}
-                style={styles.checkbox}
-              />
-              <label htmlFor="activo" style={styles.labelCheckbox}>
-                Producto Activo
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Descripción en su propia sección, debajo de las columnas */}
-        <div style={styles.descriptionSection}>
-          <div style={styles.formGroupFullWidth}>
-            <label htmlFor="descripcion" style={styles.label}>
-              Descripción:
-            </label>
-            <textarea
-              id="descripcion"
-              name="descripcion"
-              value={newProduct.descripcion}
-              onChange={handleInputChange}
-              rows="3" // Keep rows low for compactness
-              style={styles.textarea}
-              placeholder="Detalles, características..."
-            ></textarea>
-          </div>
-        </div>
-
-        {/* Botón de envío - siempre visible al final */}
-        <div style={styles.buttonContainer}>
-          <button type="submit" disabled={submitting} style={styles.submitButton}>
-            {submitting ? (
-              <>
-                <span role="img" aria-label="loading">🔄</span> Agregando...
-              </>
-            ) : (
-              <>
-                <span role="img" aria-label="add">➕</span> Agregar Producto
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
+              {/* Botones de acción */}
+              <div className="d-flex justify-content-center gap-3 mt-4">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  disabled={loading || loadingDropdowns}
+                  className="px-4 py-2" // Clases de Bootstrap para padding
+                >
+                  {loading ? (
+                    <>
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        className="me-2" // Margen a la derecha del spinner
+                      />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      {/* Icono de guardar (ejemplo SVG simple) */}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-save me-2" viewBox="0 0 16 16">
+                        <path d="M.5 1a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5zm-.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H0zM13 1h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zM.5 15a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5zm-.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H0zM13 15h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zM.5 1a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5z"/>
+                        <path d="M8 11.5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h1z"/>
+                        <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                        <path d="M10 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                      </svg>
+                      Guardar Producto
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  type="button"
+                  onClick={handleClear}
+                  disabled={loading}
+                  className="px-4 py-2"
+                >
+                  {/* Icono de limpiar (ejemplo SVG simple) */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-x-lg me-2" viewBox="0 0 16 16">
+                    <path d="M2.146 2.146a.5.5 0 0 1 .708 0L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854a.5.5 0 0 1 0-.708z"/>
+                  </svg>
+                  Limpiar Formulario
+                </Button>
+              </div>
+            </Form>
+          )}
+        </Card.Body>
+      </Card>
+    </Container>
   );
 };
-
-// --- Styles for a POS-like, no-scroll view ---
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: 'calc(100vh - 40px)', // Occupy full viewport height minus some margin
-    padding: '20px',
-    margin: '20px auto', // Smaller margin to maximize vertical space
-    maxWidth: '900px', // Wider to accommodate side-by-side columns
-    backgroundColor: '#ffffff',
-    borderRadius: '10px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-    fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-    color: '#333',
-    overflow: 'hidden', // Crucial: prevent scroll on the container itself
-  },
-  heading: {
-    fontSize: '2em', // Slightly smaller to save vertical space
-    color: '#2c3e50',
-    textAlign: 'center',
-    marginBottom: '10px', // Reduced margin
-    fontWeight: '600',
-    borderBottom: '2px solid #e0e0e0',
-    paddingBottom: '10px',
-  },
-  form: {
-    flexGrow: 1, // Allow form to take available space
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between', // Push button to bottom, fields to top
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr', // Two equal columns
-    gap: '15px 25px', // Reduced gaps for compactness
-    marginBottom: '15px', // Space between grid and description
-  },
-  column: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px', // Gap between items within each column
-  },
-  formGroup: {
-    marginBottom: '0',
-  },
-  formGroupFullWidth: {
-    gridColumn: 'span 2',
-    marginBottom: '0',
-  },
-  label: {
-    display: 'block',
-    marginBottom: '5px', // Reduced label margin
-    fontWeight: '600',
-    color: '#444',
-    fontSize: '0.9em', // Slightly smaller font
-  },
-  required: {
-    color: '#e74c3c',
-    fontSize: '1em',
-    marginLeft: '5px',
-  },
-  input: {
-    width: 'calc(100% - 20px)',
-    padding: '10px', // Reduced padding
-    border: '1px solid #ced4da',
-    borderRadius: '6px',
-    fontSize: '0.95em',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  textarea: {
-    width: 'calc(100% - 20px)',
-    padding: '10px',
-    border: '1px solid #ced4da',
-    borderRadius: '6px',
-    fontSize: '0.95em',
-    minHeight: '60px', // Reduced min-height
-    maxHeight: '90px', // Max height to prevent excessive growth
-    resize: 'vertical',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ced4da',
-    borderRadius: '6px',
-    fontSize: '0.95em',
-    backgroundColor: '#fff',
-    cursor: 'pointer',
-    appearance: 'none',
-    background: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 20 20\' fill=\'%23555\'%3E%3Cpath d=\'M7 10l5 5 5-5H7z\'/%3E%3C/svg%3E") no-repeat right 10px center',
-    backgroundSize: '12px',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  checkboxContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    paddingTop: '5px', // Align with other form elements
-  },
-  checkbox: {
-    marginRight: '8px',
-    width: '16px',
-    height: '16px',
-    cursor: 'pointer',
-  },
-  labelCheckbox: {
-    marginBottom: '0',
-    fontWeight: 'normal',
-    color: '#333',
-    cursor: 'pointer',
-    fontSize: '0.95em',
-  },
-  descriptionSection: {
-    // This section is outside the main grid but inside the form
-    marginBottom: '20px', // Space before the button
-  },
-  buttonContainer: {
-    textAlign: 'center',
-    paddingTop: '10px', // Space from description to button
-  },
-  submitButton: {
-    padding: '12px 25px', // Slightly smaller button
-    fontSize: '1em',
-    fontWeight: '600',
-    backgroundColor: '#28a745', // POS-like green for "add"
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    boxShadow: '0 4px 10px rgba(40, 167, 69, 0.3)',
-  },
-  loadingMessage: {
-    textAlign: 'center',
-    fontSize: '1.2em',
-    color: '#555',
-    padding: '20px',
-    borderRadius: '8px',
-    backgroundColor: '#ecf0f1',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-  },
-  successMessage: {
-    backgroundColor: '#e6ffe6',
-    color: '#28a745',
-    padding: '12px',
-    borderRadius: '8px',
-    marginBottom: '15px',
-    textAlign: 'center',
-    fontSize: '1em',
-    border: '1px solid #28a745',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    fontWeight: 'bold',
-  },
-  errorMessage: {
-    backgroundColor: '#ffe6e6',
-    color: '#dc3545',
-    padding: '12px',
-    borderRadius: '8px',
-    marginBottom: '15px',
-    textAlign: 'center',
-    fontSize: '1em',
-    border: '1px solid #dc3545',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    fontWeight: 'bold',
-  },
-};
-
-
 
 export default AgregarProductoPage;

@@ -1064,3 +1064,466 @@ h1 {
     color: #dc3545; /* Red for delete */
     margin-left: 5px;
 }
+/* src/pages/FacturasPage.css */
+
+.page-content {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 20px; /* Espacio debajo del Navbar */
+}
+
+.facturas-actions {
+  margin-bottom: 20px;
+  text-align: right; /* Alinea el botón a la derecha */
+}
+
+.facturas-table-container {
+  overflow-x: auto; /* Permite scroll horizontal en tablas grandes */
+}
+
+.facturas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden; /* Asegura que los bordes redondeados se apliquen */
+}
+
+.facturas-table th,
+.facturas-table td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: left;
+}
+
+.facturas-table th {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.facturas-table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.facturas-table tbody tr:hover {
+  background-color: #e9ecef;
+}
+
+.btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+  margin-right: 5px; /* Espacio entre botones */
+}
+
+.btn-info:hover {
+  background-color: #138496;
+}
+
+.error-message {
+  color: #dc3545; /* Rojo para mensajes de error */
+  font-weight: bold;
+}
+/* Añadir o modificar en src/App.css (o FacturasPage.css) */
+
+/* General page layout - ensure these are present */
+.page-content {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 20px auto; /* Centra el contenido */
+    max-width: 1200px;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.page-heading {
+    margin: 0;
+    color: #333;
+    font-size: 1.8rem;
+}
+
+/* Mensajes de alerta (para éxito/error/info) */
+.alert-message {
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.success-message {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.info-message {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Contenedor de tarjetas de resumen */
+.summary-cards-container {
+    display: flex;
+    flex-wrap: wrap; /* Permite que las tarjetas se envuelvan en pantallas pequeñas */
+    gap: 20px; /* Espacio entre tarjetas */
+    margin-bottom: 30px;
+    justify-content: center; /* Centra las tarjetas si no ocupan todo el ancho */
+}
+
+.summary-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    flex: 1; /* Permite que las tarjetas crezcan para llenar el espacio */
+    min-width: 250px; /* Ancho mínimo para cada tarjeta */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transition: transform 0.2s ease-in-out;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+}
+
+.summary-card h3 {
+    margin-top: 0;
+    color: #555;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.summary-card .summary-value {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #007bff; /* Color principal */
+    margin: 0;
+}
+
+
+/* Estilos de la tabla - asegúrate de que estén presentes o agrégalos */
+.table-container {
+    margin-top: 20px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+table thead tr {
+    background-color: #f2f2f2;
+    border-bottom: 2px solid #ddd;
+}
+
+table th,
+table td {
+    text-align: left;
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap;
+}
+
+table th {
+    color: #333;
+    font-weight: bold;
+}
+
+table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tbody tr:hover {
+    background-color: #eef;
+}
+
+.view-button {
+    background-color: #17a2b8; /* Turquesa */
+    color: white;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.3s ease;
+    margin-right: 8px; /* Espacio entre botones */
+}
+
+.view-button:hover {
+    background-color: #138496;
+}
+
+.delete-button {
+    background-color: #dc3545; /* Rojo */
+    color: white;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.3s ease;
+}
+
+.delete-button:hover {
+    background-color: #c82333;
+}
+
+.loading-message, .empty-state {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .summary-cards-container {
+        flex-direction: column; /* Apila las tarjetas verticalmente en pantallas pequeñas */
+        align-items: center;
+    }
+    .summary-card {
+        width: 100%; /* Ocupa todo el ancho disponible */
+        min-width: unset; /* Elimina el ancho mínimo para mayor flexibilidad */
+    }
+    .table-container {
+        padding: 10px; /* Menos padding en pantallas pequeñas */
+    }
+    table th, table td {
+        padding: 8px 10px; /* Menos padding en celdas */
+    }
+}
+/* Estilos para el Modal de Detalles */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Asegura que esté por encima de todo */
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 800px; /* Ancho máximo para el modal */
+    max-height: 90vh; /* Altura máxima para evitar desbordamiento */
+    overflow-y: auto; /* Permite desplazamiento si el contenido es largo */
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #888;
+    transition: color 0.2s ease;
+}
+
+.close-button:hover {
+    color: #333;
+}
+
+.modal-body {
+    flex-grow: 1; /* Permite que el cuerpo ocupe el espacio restante */
+    margin-bottom: 20px;
+}
+
+.modal-body h4 {
+    color: #555;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 8px;
+}
+
+.invoice-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 2 columnas o más si hay espacio */
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.detail-item {
+    background-color: #f8f8f8;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #e9e9e9;
+    font-size: 0.95rem;
+}
+
+.detail-item strong {
+    color: #444;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.detail-item.total-amount {
+    grid-column: 1 / -1; /* Ocupa todo el ancho si es una cuadrícula */
+    background-color: #e6f7ff;
+    border-color: #91d5ff;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #0056b3;
+    text-align: center;
+    padding: 15px;
+}
+
+/* Estilos para la lista de productos dentro del modal */
+.products-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.product-detail-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fdfdfd;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.product-image-wrapper {
+    flex-shrink: 0; /* Evita que la imagen se encoja */
+    width: 80px;
+    height: 80px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Recorta la imagen para que quepa */
+}
+
+.no-image-placeholder {
+    color: #999;
+    font-size: 0.8em;
+    text-align: center;
+}
+
+
+.product-info {
+    flex-grow: 1;
+}
+
+.product-info strong {
+    font-size: 1.1em;
+    color: #333;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.product-info p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.modal-footer {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    text-align: right;
+}
+
+/* Media Queries para responsividad del modal */
+@media (max-width: 600px) {
+    .modal-content {
+        padding: 20px;
+    }
+    .modal-header h3 {
+        font-size: 1.2rem;
+    }
+    .close-button {
+        font-size: 1.8rem;
+    }
+    .invoice-details-grid {
+        grid-template-columns: 1fr; /* Una columna en pantallas muy pequeñas */
+    }
+    .detail-item.total-amount {
+        padding: 12px;
+    }
+    .products-list-container {
+        grid-template-columns: 1fr;
+    }
+}

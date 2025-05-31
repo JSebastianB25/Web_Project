@@ -1,24 +1,15 @@
+# WEB_PROJECT/urls.py (archivo principal del proyecto)
+
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import (
-    ProveedorViewSet, CategoriaViewSet, ClienteViewSet, FormaPagoViewSet,
-    ProductoViewSet, FacturaViewSet, DetalleVentaViewSet, RolViewSet, PermisoViewSet, UsuarioViewSet
-)
-
-router = DefaultRouter()
-router.register(r'proveedores', ProveedorViewSet)
-router.register(r'categorias', CategoriaViewSet)
-router.register(r'clientes', ClienteViewSet)
-router.register(r'formas-pago', FormaPagoViewSet)
-router.register(r'productos', ProductoViewSet)
-router.register(r'facturas', FacturaViewSet)
-router.register(r'detalle-ventas', DetalleVentaViewSet)
-router.register(r'roles', RolViewSet)
-router.register(r'permisos', PermisoViewSet)
-router.register(r'usuarios', UsuarioViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
+    # Incluye las URLs de tus nuevas aplicaciones bajo un prefijo '/api/'
+    path('api/', include('uglobals.urls')),
+    path('api/', include('users.urls')),
+    path('api/', include('products.urls')),
+    path('api/', include('sales.urls')),
+    # Puedes cambiar 'api/' a 'api/v1/' o lo que prefieras para tus endpoints
+
 ]
