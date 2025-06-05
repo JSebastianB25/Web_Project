@@ -1,6 +1,6 @@
 # zglobals/serializers.py
 from rest_framework import serializers
-from .models import Proveedor,Marca, Categoria, FormaPago, Cliente # Importa desde su propio models.py
+from .models import Proveedor,Marca, Categoria, FormaPago# Importa desde su propio models.py
 
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,9 +20,4 @@ class CategoriaSerializer(serializers.ModelSerializer):
 class FormaPagoSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormaPago
-        fields = '__all__'
-
-class ClienteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cliente
         fields = '__all__'

@@ -1,5 +1,6 @@
 # products/models.py
 from django.db import models
+from decimal import Decimal
 from uglobals.models import Proveedor, Categoria # ¡Importamos desde la app 'globals'!
 
 # Modelo Producto
@@ -7,7 +8,7 @@ class Producto(models.Model):
     referencia_producto = models.CharField(max_length=50, primary_key=True)
     nombre = models.CharField(max_length=255)
     descripcion = models.TextField(blank=True)
-    precio_costo = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_costo = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     precio_sugerido_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock = models.IntegerField(default=0)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, related_name='productos')

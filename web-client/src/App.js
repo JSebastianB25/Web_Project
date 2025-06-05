@@ -9,6 +9,9 @@ import MarcaPage from './pages/MarcasPage';
 import ProveedorPage from './pages/ProveedoresPage';
 import CategoriaPage from './pages/CategoriasPage';
 import FormaPagoPage from './pages/FormasPagoPage';
+import ClientePage from './pages/ClientesPage';
+import EditarEliminarProductosPage from './pages/EditarEliminarProductosPage';
+import ProductosPage from './pages/ProductosPage';
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
         <Route path="/proveedores" element={<ProveedorPage />} />
         <Route path="/categorias" element={<CategoriaPage />} />
         <Route path="/formas-pago" element={<FormaPagoPage />} />
+        <Route path="/clientes" element={<ClientePage />} />
+        <Route path="/editar/eliminarclientes" element={<EditarEliminarProductosPage />} />
+        <Route path="/ver/productos" element={<ProductosPage />} />
         {/* Agrega otras rutas aquí */}
       </Routes>
     </Router>

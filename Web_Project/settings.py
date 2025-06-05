@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'rest_framework',
     'Web_Project',
     'uglobals',        # ¡Nueva app!
@@ -54,6 +55,8 @@ INSTALLED_APPS = [
     'sales',       # ¡Nueva app!
     'users',       # ¡Nueva app!
 ]
+
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

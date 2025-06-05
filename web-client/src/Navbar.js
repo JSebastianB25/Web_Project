@@ -1,53 +1,74 @@
 // web-client/src/Navbar.js
 
 import React from 'react';
-// Importamos Navbar de react-bootstrap como BSNavbar para evitar conflicto de nombres con nuestro componente 'Navbar'
-import { Navbar as BSNavbar, Nav, Container } from 'react-bootstrap'; 
-import { LinkContainer } from 'react-router-bootstrap'; // Necesario para integrar react-router-dom con Nav.Link
+import { Navbar as BSNavbar, Nav, Container, NavDropdown } from 'react-bootstrap';
+import { LinkContainer } from 'react-router-bootstrap';
 
-// Este es TU COMPONENTE Navbar
-const Navbar = () => { 
+const Navbar = () => {
   return (
-    // Aquí usamos el componente Navbar de react-bootstrap, importado como BSNavbar
     <BSNavbar bg="dark" variant="dark" expand="lg">
       <Container>
-        {/* Marca/Logo de la aplicación, que lleva a la página de inicio */}
         <LinkContainer to="/">
           <BSNavbar.Brand>Gestor de Inventarios</BSNavbar.Brand>
         </LinkContainer>
 
-        {/* Botón para colapsar/expandir el menú en dispositivos pequeños */}
         <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
 
-        {/* Contenido del menú */}
         <BSNavbar.Collapse id="basic-navbar-nav">
-          <Nav className="me-auto"> 
+          <Nav className="me-auto">
+            {/* Inicio */}
             <LinkContainer to="/">
               <Nav.Link>Inicio</Nav.Link>
             </LinkContainer>
 
-            <LinkContainer to="/productos/agregar">
-              <Nav.Link>Agregar Producto</Nav.Link>
-            </LinkContainer>
-            
-            {/* Enlace para la página de Gestionar Marcas */}
-            <LinkContainer to="/marcas">
-              <Nav.Link>Gestionar Marcas</Nav.Link>
-            </LinkContainer>
+            {/* Dropdown: Productos - ¡CORRECCIÓN AQUÍ! */}
+            <NavDropdown title="Productos" id="nav-dropdown-productos">
+              <LinkContainer to="/ver/productos">
+                <NavDropdown.Item>Ver Todos</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/productos/agregar">
+                <NavDropdown.Item>Agregar Nuevo</NavDropdown.Item>
+              </LinkContainer>
+              {/* ¡Mueve el Divider FUERA de cualquier LinkContainer! */}
+              <NavDropdown.Divider />
+              <LinkContainer to="/editar/eliminarclientes">
+                <NavDropdown.Item>Editar o Eliminar</NavDropdown.Item>
+              </LinkContainer>
+            </NavDropdown>
 
-            {/* --- NUEVO ENLACE A PROVEEDORES --- */}
-            <LinkContainer to="/proveedores">
-              <Nav.Link>Gestionar Proveedores</Nav.Link>
-            </LinkContainer>
+            {/* Dropdown: Clientes */}
+            <NavDropdown title="Clientes" id="nav-dropdown-clientes">
+              <LinkContainer to="/clientes">
+                <NavDropdown.Item>Ver Todos</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/clientes/agregar">
+                <NavDropdown.Item>Agregar Nuevo</NavDropdown.Item>
+              </LinkContainer>
+            </NavDropdown>
 
-            {/* --- NUEVO ENLACE A CATEGORÍAS --- */}
-            <LinkContainer to="/categorias">
-              <Nav.Link>Gestionar Categorías</Nav.Link>
-            </LinkContainer>
-            {/* --- NUEVO ENLACE A FORMAS DE PAGO --- */}
-            <LinkContainer to="/formas-pago">
-              <Nav.Link>Gestionar Formas de Pago</Nav.Link> 
-            </LinkContainer>
+            {/* Dropdown: Proveedores */}
+            <NavDropdown title="Proveedores" id="nav-dropdown-proveedores">
+              <LinkContainer to="/proveedores">
+                <NavDropdown.Item>Ver Todos</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/proveedores/agregar">
+                <NavDropdown.Item>Agregar Nuevo</NavDropdown.Item>
+              </LinkContainer>
+            </NavDropdown>
+
+            {/* Dropdown: Catálogos/Globales */}
+            <NavDropdown title="Catálogos" id="nav-dropdown-catalogos">
+              <LinkContainer to="/marcas">
+                <NavDropdown.Item>Marcas</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/categorias">
+                <NavDropdown.Item>Categorías</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/formas-pago">
+                <NavDropdown.Item>Formas de Pago</NavDropdown.Item>
+              </LinkContainer>
+            </NavDropdown>
+
           </Nav>
         </BSNavbar.Collapse>
       </Container>

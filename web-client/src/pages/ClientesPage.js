@@ -1,159 +1,134 @@
-// src/pages/ClientesPage.js
 import React, { useState } from 'react';
+import axios from 'axios';
+import Swal from 'sweetalert2'; // Asumo que tienes SweetAlert2 instalado como en tu ejemplo
 
-const ClientesPage = () => {
-  const [newCliente, setNewCliente] = useState({
-    nombre: '',
-    telefono: '',
-    email: '',
-  });
-
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewCliente(prevCliente => ({
-      ...prevCliente,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    setSuccessMessage('');
-
-    if (!newCliente.nombre || !newCliente.email) {
-      setError({ message: 'Por favor, completa los campos obligatorios (Nombre y Email).' });
-      setSubmitting(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:8000/api/clientes/', { // Adjust API endpoint if different
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer YOUR_AUTH_TOKEN` // Uncomment if needed
-        },
-        body: JSON.stringify(newCliente),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        let errorMessage = 'Error al agregar cliente.';
-        if (errorData.email) errorMessage = `Email ya registrado: ${errorData.email[0]}`;
-        else if (errorData.nombre) errorMessage = `Error en el nombre: ${errorData.nombre[0]}`;
-        else errorMessage = `Error al agregar cliente: ${JSON.stringify(errorData)}`;
-        throw new Error(errorMessage);
-      }
-
-      const addedCliente = await response.json();
-      setSuccessMessage(`Cliente "${addedCliente.nombre}" agregado exitosamente.`);
-
-      // Reset the form
-      setNewCliente({
+const ClienteAdd = () => {
+    // 1. Estado para los datos del formulario
+    const [clienteData, setClienteData] = useState({
         nombre: '',
         telefono: '',
         email: '',
-      });
+    });
 
-    } catch (err) {
-      console.error("Error adding cliente:", err);
-      setError(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    // Estado para manejar si hay un proceso de carga o un error general
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  return (
-    <div className="page-content generic-page-container">
-      <h2 className="page-heading">➕ Nuevo Cliente</h2>
+    // 2. Manejador de cambios para los campos del formulario
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setClienteData({
+            ...clienteData,
+            [name]: value,
+        });
+    };
 
-      {successMessage && (
-        <div className="alert-message success-message">
-          <span role="img" aria-label="success">✅</span> {successMessage}
+    // 3. Manejador del envío del formulario
+    const handleSubmit = async (e) => {
+        e.preventDefault(); // Previene el comportamiento por defecto del formulario
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Asegúrate de que esta URL coincida con tu endpoint de API para clientes
+            // Normalmente sería algo como /api/clientes/ o /api/clients/
+            const response = await axios.post('http://localhost:8000/api/clientes/', clienteData);
+
+            if (response.status === 201) { // 201 Created es el código de éxito para POST
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: 'Cliente agregado exitosamente.',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                // Limpiar el formulario después del éxito
+                setClienteData({
+                    nombre: '',
+                    telefono: '',
+                    email: '',
+                });
+            }
+        } catch (err) {
+            console.error('Error al agregar cliente:', err);
+            setError(err); // Guarda el error completo para depuración si es necesario
+
+            let errorMessage = 'Error al agregar el cliente. Por favor, inténtalo de nuevo.';
+            if (err.response && err.response.data) {
+                // Manejo de errores de validación de Django REST Framework
+                const data = err.response.data;
+                if (data.email && data.email.includes('cliente with this email address already exists.')) {
+                    errorMessage = 'Ya existe un cliente con esta dirección de correo electrónico.';
+                } else {
+                    // Si hay otros errores de validación, puedes mostrarlos
+                    errorMessage = Object.values(data).flat().join(' ');
+                }
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="container mt-4">
+            <h2>Agregar Nuevo Cliente</h2>
+            <hr />
+            <form onSubmit={handleSubmit}>
+                {/* Campo Nombre */}
+                <div className="mb-3">
+                    <label htmlFor="nombre" className="form-label">Nombre</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        id="nombre"
+                        name="nombre"
+                        value={clienteData.nombre}
+                        onChange={handleChange}
+                        required // El nombre es obligatorio según tu modelo
+                    />
+                </div>
+
+                {/* Campo Teléfono */}
+                <div className="mb-3">
+                    <label htmlFor="telefono" className="form-label">Teléfono</label>
+                    <input
+                        type="tel" // Tipo 'tel' para mejor semántica en el navegador
+                        className="form-control"
+                        id="telefono"
+                        name="telefono"
+                        value={clienteData.telefono}
+                        onChange={handleChange}
+                        // blank=True en el modelo, así que no es 'required' aquí
+                    />
+                </div>
+
+                {/* Campo Email */}
+                <div className="mb-3">
+                    <label htmlFor="email" className="form-label">Email</label>
+                    <input
+                        type="email" // Tipo 'email' para validación básica del navegador
+                        className="form-control"
+                        id="email"
+                        name="email"
+                        value={clienteData.email}
+                        onChange={handleChange}
+                        required // Email es obligatorio y único
+                    />
+                </div>
+
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Guardando...' : 'Guardar Cliente'}
+                </button>
+            </form>
         </div>
-      )}
-      {error && error.message && (
-        <div className="alert-message error-message">
-          <span role="img" aria-label="error">❌</span> {error.message}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="form-container">
-        <div className="form-grid-single-column">
-          {/* Nombre del Cliente */}
-          <div className="form-group-full-width">
-            <label htmlFor="nombre" className="form-label">
-              Nombre del Cliente: <span className="required-field">*</span>
-            </label>
-            <input
-              type="text"
-              id="nombre"
-              name="nombre"
-              value={newCliente.nombre}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-              placeholder="Ej: María Gómez"
-            />
-          </div>
-
-          {/* Teléfono */}
-          <div className="form-group-full-width">
-            <label htmlFor="telefono" className="form-label">
-              Teléfono (opcional):
-            </label>
-            <input
-              type="tel" // Use type="tel" for phone numbers
-              id="telefono"
-              name="telefono"
-              value={newCliente.telefono}
-              onChange={handleInputChange}
-              className="form-input"
-              placeholder="Ej: 555-1234"
-            />
-          </div>
-
-          {/* Email */}
-          <div className="form-group-full-width">
-            <label htmlFor="email" className="form-label">
-              Email: <span className="required-field">*</span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={newCliente.email}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-              placeholder="ejemplo@dominio.com"
-            />
-          </div>
-        </div>
-
-        {/* Botón de envío */}
-        <div className="button-container">
-          <button type="submit" disabled={submitting} className="submit-button">
-            {submitting ? (
-              <>
-                <span role="img" aria-label="loading">🔄</span> Agregando...
-              </>
-            ) : (
-              <>
-                <span role="img" aria-label="add">➕</span> Agregar Cliente
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+    );
 };
 
-export default ClientesPage;
+export default ClienteAdd;

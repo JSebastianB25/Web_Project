@@ -31,13 +31,3 @@ class FormaPago(models.Model):
     def __str__(self):
         return self.metodo
     
-# Modelo Cliente
-class Cliente(models.Model):
-        id = models.AutoField(primary_key=True)
-        nombre = models.CharField(max_length=100)
-        cedula = models.CharField(max_length=20, unique=True, blank=True, null=True) # Cedula, opcional y única
-        correo = models.CharField(max_length=255, blank=True, null=True) # Usamos correo en lugar de direccion
-        telefono = models.CharField(max_length=20, blank=True, null=True)
-        email = models.EmailField(unique=True, blank=True, null=True) # Sigue siendo email y opcional
-        def __str__(self):
-            return self.nombre 

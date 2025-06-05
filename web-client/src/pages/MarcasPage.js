@@ -1,281 +1,388 @@
-// web-client/src/pages/MarcaPage.js
+// web-client/src/pages/MarcasPage.js
 
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Container,
-  Form,
-  Button,
-  Row,
-  Col,
-  Alert,
-  Spinner,
-  Card,
-  Table, // Para listar las marcas
+    Container, Row, Col, Form, Button, Table, Spinner,
+    Modal, InputGroup, Card, Image // <-- Importa Image para la previsualización y mostrar en la tabla
 } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faImage } from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
+// Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
+const API_MARCAS_URL = `${API_BASE_URL}/marcas/`; // Ajusta esta URL si es diferente
 
-const MarcaPage = () => {
-  const [marcas, setMarcas] = useState([]); // Para almacenar la lista de marcas
-  const [formData, setFormData] = useState({ // Para el formulario de agregar/editar
-    nombre: '',
-    imagen: '',
-  });
-  const [editingMarcaId, setEditingMarcaId] = useState(null); // Para saber si estamos editando
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const MarcasPage = () => {
+    const [marcas, setMarcas] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  // Función para cargar todas las marcas
-  const fetchMarcas = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.get(`${API_BASE_URL}/marcas/`);
-      setMarcas(response.data);
-      setSuccess(''); // Limpiar éxito anterior al recargar lista
-    } catch (err) {
-      console.error('Error al cargar marcas:', err.response ? err.response.data : err.message);
-      setError('Error al cargar marcas. Por favor, recarga la página.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Estados para el formulario de nueva marca
+    const [newMarcaData, setNewMarcaData] = useState({
+        nombre: '',
+        imagen: '' // Campo para la URL de la imagen
+    });
 
-  // Cargar marcas al montar el componente
-  useEffect(() => {
-    fetchMarcas();
-  }, []);
+    // Estados para el modal de edición
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [currentMarca, setCurrentMarca] = useState(null); // Marca que se está editando
+    const [editFormData, setEditFormData] = useState({
+        nombre: '',
+        imagen: ''
+    });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
+    // Función para cargar marcas
+    const fetchMarcas = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            console.log('🔗 Fetching marcas from:', API_MARCAS_URL);
+            const response = await axios.get(API_MARCAS_URL);
+            console.log('📦 Marcas data:', response.data);
+            setMarcas(response.data || []); // Espera un array directo
+        } catch (err) {
+            console.error('❌ Error fetching marcas:', err.response ? err.response.data : err.message);
+            setError('No se pudieron cargar las marcas. Intenta de nuevo.');
+            Swal.fire('Error', 'No se pudieron cargar las marcas.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+    // Cargar marcas al montar el componente
+    useEffect(() => {
+        fetchMarcas();
+    }, [fetchMarcas]);
 
-    try {
-      if (editingMarcaId) {
-        // Modo Edición: PUT para actualizar
-        await axios.put(`${API_BASE_URL}/marcas/${editingMarcaId}/`, formData);
-        setSuccess('Marca actualizada exitosamente!');
-      } else {
-        // Modo Creación: POST para agregar
-        await axios.post(`${API_BASE_URL}/marcas/`, formData);
-        setSuccess('Marca agregada exitosamente!');
-      }
-      
-      setFormData({ nombre: '', imagen: '' }); // Limpiar formulario
-      setEditingMarcaId(null); // Salir del modo edición
-      fetchMarcas(); // Recargar la lista de marcas
-    } catch (err) {
-      console.error('Error al guardar marca:', err.response ? err.response.data : err.message);
-      const errorMsg = err.response && err.response.data
-        ? Object.values(err.response.data).flat().join(' ')
-        : `Error al ${editingMarcaId ? 'actualizar' : 'agregar'} la marca. Inténtalo de nuevo.`;
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Manejador para el formulario de nueva marca
+    const handleNewMarcaChange = (e) => {
+        const { name, value } = e.target;
+        setNewMarcaData(prevData => ({ ...prevData, [name]: value }));
+    };
 
-  const handleEditClick = (marca) => {
-    setFormData({ nombre: marca.nombre, imagen: marca.imagen });
-    setEditingMarcaId(marca.id);
-    setError(''); // Limpiar errores al editar
-    setSuccess(''); // Limpiar éxitos al editar
-  };
+    const handleNewMarcaSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.post(API_MARCAS_URL, newMarcaData);
+            if (response.status === 201) {
+                Swal.fire('¡Éxito!', 'Marca agregada exitosamente.', 'success');
+                setNewMarcaData({ nombre: '', imagen: '' }); // Limpiar formulario
+                fetchMarcas(); // Recargar la lista
+            }
+        } catch (err) {
+            console.error('Error al agregar marca:', err.response ? err.response.data : err);
+            const errorMessage = err.response && err.response.data
+                ? Object.values(err.response.data).flat().join(' ')
+                : 'Ocurrió un error al agregar la marca.';
+            setError(errorMessage);
+            Swal.fire('Error', errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta marca?')) {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-      try {
-        await axios.delete(`${API_BASE_URL}/marcas/${id}/`);
-        setSuccess('Marca eliminada exitosamente!');
-        fetchMarcas(); // Recargar la lista
-      } catch (err) {
-        console.error('Error al eliminar marca:', err.response ? err.response.data : err.message);
-        setError('Error al eliminar la marca. Podría estar en uso.');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+    // Manejadores para el modal de edición
+    const handleEditClick = (marca) => {
+        setCurrentMarca(marca);
+        setEditFormData({
+            nombre: marca.nombre,
+            imagen: marca.imagen || '' // Asegura que no sea null
+        });
+        setShowEditModal(true);
+    };
 
-  const handleClearForm = () => {
-    setFormData({ nombre: '', imagen: '' });
-    setEditingMarcaId(null);
-    setError('');
-    setSuccess('');
-  };
+    const handleEditFormChange = (e) => {
+        const { name, value } = e.target;
+        setEditFormData(prevData => ({ ...prevData, [name]: value }));
+    };
 
-  return (
-    <Container className="my-4">
-      <Card className="shadow-lg rounded-lg">
-        <Card.Body className="p-4 p-md-5">
-          <h1 className="text-center mb-4 text-primary fw-bold border-bottom pb-2">
-            {editingMarcaId ? 'Editar Marca' : 'Agregar Nueva Marca'}
-          </h1>
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+            // Envía la actualización a la URL específica de la marca
+            const response = await axios.put(`${API_MARCAS_URL}${currentMarca.id}/`, editFormData);
+            if (response.status === 200) {
+                Swal.fire('¡Éxito!', 'Marca actualizada exitosamente.', 'success');
+                setShowEditModal(false); // Cerrar modal
+                fetchMarcas(); // Recargar la lista
+            }
+        } catch (err) {
+            console.error('Error al actualizar marca:', err.response ? err.response.data : err);
+            const errorMessage = err.response && err.response.data
+                ? Object.values(err.response.data).flat().join(' ')
+                : 'Ocurrió un error al actualizar la marca.';
+            setError(errorMessage);
+            Swal.fire('Error', errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-          {/* Mensajes de éxito/error */}
-          {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
-          {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+    const handleDeleteClick = async (marcaId) => {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¡No podrás revertir esto!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminarla!',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await axios.delete(`${API_MARCAS_URL}${marcaId}/`);
+                    if (response.status === 204) { // 204 No Content es el éxito para DELETE
+                        Swal.fire('¡Eliminada!', 'La marca ha sido eliminada.', 'success');
+                        fetchMarcas(); // Recargar la lista
+                    }
+                } catch (err) {
+                    console.error('Error al eliminar marca:', err.response ? err.response.data : err);
+                    const errorMessage = err.response && err.response.data
+                        ? Object.values(err.response.data).flat().join(' ')
+                        : 'Ocurrió un error al eliminar la marca.';
+                    setError(errorMessage);
+                    Swal.fire('Error', errorMessage, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
+    };
 
-          {/* Formulario de Agregar/Editar Marca */}
-          <Form onSubmit={handleSubmit} className="mb-5">
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group controlId="formMarcaNombre">
-                  <Form.Label>Nombre de la Marca <span className="text-danger">*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="nombre"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    required
-                    placeholder="Ej: Samsung"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="formMarcaImagen">
-                  <Form.Label>URL de Imagen (opcional)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="imagen"
-                    value={formData.imagen}
-                    onChange={handleChange}
-                    placeholder="Ej: http://ejemplo.com/logo-samsung.png"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+    // Función auxiliar para previsualizar la imagen
+    const renderImagePreview = (imageUrl, altText) => {
+        if (!imageUrl) return null;
+        const isValidUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+        if (!isValidUrl) return <p className="text-danger mt-2">URL de imagen inválida.</p>;
 
-            <div className="d-flex justify-content-center gap-3">
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2"
-              >
-                {loading ? (
-                  <>
-                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    {/* Icono de guardar SVG */}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-save me-2" viewBox="0 0 16 16">
-                      <path d="M.5 1a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5zm-.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H0zM13 1h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zM.5 15a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5zm-.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H0zM13 15h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zm.5 8.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H13zM.5 1a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1H.5z"/>
-                      <path d="M8 11.5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h1z"/>
-                      <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
-                      <path d="M10 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-                    </svg>
-                    {editingMarcaId ? 'Actualizar Marca' : 'Agregar Marca'}
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline-secondary"
-                type="button"
-                onClick={handleClearForm}
-                disabled={loading}
-                className="px-4 py-2"
-              >
-                {/* Icono de limpiar SVG */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-x-lg me-2" viewBox="0 0 16 16">
-                  <path d="M2.146 2.146a.5.5 0 0 1 .708 0L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854a.5.5 0 0 1 0-.708z"/>
-                </svg>
-                Limpiar Formulario
-              </Button>
+        return (
+            <div className="mt-2 text-center">
+                <p className="mb-1 text-muted small">Previsualización:</p>
+                <Image
+                    src={imageUrl}
+                    alt={altText || "Previsualización"}
+                    fluid
+                    style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain', border: '1px solid #ddd', padding: '5px' }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/100x50?text=Imagen+No+Cargada'; }}
+                />
             </div>
-          </Form>
+        );
+    };
 
-          <h2 className="text-center mb-4 mt-5 text-secondary fw-bold border-bottom pb-2">
-            Lista de Marcas
-          </h2>
+    return (
+        <Container className="mt-4">
+            <h2 className="mb-4 text-center">Gestión de Marcas</h2>
 
-          {loading && (
-            <div className="d-flex justify-content-center my-4">
-              <Spinner animation="border" variant="secondary" />
-              <p className="ms-2">Cargando marcas...</p>
-            </div>
-          )}
+            {error && <div className="alert alert-danger text-center">{error}</div>}
 
-          {!loading && marcas.length === 0 && (
-            <Alert variant="info" className="text-center">No hay marcas registradas aún.</Alert>
-          )}
+            {/* Formulario para Agregar Nueva Marca */}
+            <Card className="mb-4 shadow-sm">
+                <Card.Header className="bg-primary text-white">
+                    <h5 className="mb-0">
+                        <FontAwesomeIcon icon={faPlus} className="me-2" />
+                        Agregar Nueva Marca
+                    </h5>
+                </Card.Header>
+                <Card.Body>
+                    <Form onSubmit={handleNewMarcaSubmit}>
+                        <Row className="g-3">
+                            <Col md={6}>
+                                <Form.Group controlId="newMarcaNombre">
+                                    <Form.Label>Nombre de la Marca</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="nombre"
+                                        value={newMarcaData.nombre}
+                                        onChange={handleNewMarcaChange}
+                                        placeholder="Ej: Samsung, Apple, Oster"
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group controlId="newMarcaImagen">
+                                    <Form.Label>URL de la Imagen (Logo)</Form.Label>
+                                    <InputGroup>
+                                        <InputGroup.Text><FontAwesomeIcon icon={faImage} /></InputGroup.Text>
+                                        <Form.Control
+                                            type="url" // Usa type="url" para validación básica del navegador
+                                            name="imagen"
+                                            value={newMarcaData.imagen}
+                                            onChange={handleNewMarcaChange}
+                                            placeholder="Ej: https://ejemplo.com/logo.png"
+                                        />
+                                    </InputGroup>
+                                    {renderImagePreview(newMarcaData.imagen, newMarcaData.nombre)}
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} className="text-end">
+                                <Button variant="success" type="submit" disabled={loading}>
+                                    {loading ? (
+                                        <>
+                                            <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                                            Agregando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FontAwesomeIcon icon={faPlus} className="me-2" />
+                                            Agregar Marca
+                                        </>
+                                    )}
+                                </Button>
+                            </Col>
+                        </Row>
+                    </Form>
+                </Card.Body>
+            </Card>
 
-          {!loading && marcas.length > 0 && (
-            <div className="table-responsive"> {/* Hace la tabla scrollable en pantallas pequeñas */}
-              <Table striped bordered hover responsive className="mt-3">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Imagen</th>
-                    <th className="text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {marcas.map((marca) => (
-                    <tr key={marca.id}>
-                      <td>{marca.id}</td>
-                      <td>{marca.nombre}</td>
-                      <td>
-                        {marca.imagen ? (
-                          <img src={marca.imagen} alt={marca.nombre} style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
-                        ) : (
-                          'N/A'
+            {/* Lista de Marcas */}
+            <Card className="shadow-sm">
+                <Card.Header className="bg-info text-white">
+                    <h5 className="mb-0">
+                        <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
+                        Marcas Existentes
+                    </h5>
+                </Card.Header>
+                <Card.Body>
+                    {loading && (
+                        <div className="text-center my-3">
+                            <Spinner animation="border" role="status">
+                                <span className="visually-hidden">Cargando marcas...</span>
+                            </Spinner>
+                            <p className="mt-2">Cargando marcas...</p>
+                        </div>
+                    )}
+                    {!loading && marcas.length === 0 && (
+                        <div className="alert alert-info text-center mt-3">
+                            No hay marcas registradas aún.
+                        </div>
+                    )}
+                    {!loading && marcas.length > 0 && (
+                        <div className="table-responsive">
+                            <Table striped bordered hover className="mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Imagen</th> {/* Nueva columna para la imagen */}
+                                        <th>Nombre</th>
+                                        <th className="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {marcas.map(marca => (
+                                        <tr key={marca.id}>
+                                            <td>{marca.id}</td>
+                                            <td>
+                                                {/* Muestra la imagen si la URL es válida */}
+                                                {marca.imagen ? (
+                                                    <Image
+                                                        src={marca.imagen}
+                                                        alt={marca.nombre}
+                                                        style={{ height: '50px', width: 'auto', objectFit: 'contain' }}
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/50x25?text=No+Img'; }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted small">No imagen</span>
+                                                )}
+                                            </td>
+                                            <td>{marca.nombre}</td>
+                                            <td className="text-center">
+                                                <Button
+                                                    variant="warning"
+                                                    size="sm"
+                                                    className="me-2"
+                                                    onClick={() => handleEditClick(marca)}
+                                                >
+                                                    <FontAwesomeIcon icon={faEdit} /> Editar
+                                                </Button>
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteClick(marca.id)}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} /> Eliminar
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </div>
+                    )}
+                </Card.Body>
+            </Card>
+
+            {/* Modal de Edición de Marca */}
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+                <Modal.Header closeButton className="bg-warning text-white">
+                    <Modal.Title>
+                        <FontAwesomeIcon icon={faEdit} className="me-2" />
+                        Editar Marca
+                    </Modal.Title>
+                </Modal.Header>
+                <Form onSubmit={handleEditSubmit}>
+                    <Modal.Body>
+                        {currentMarca && (
+                            <>
+                                <Form.Group className="mb-3" controlId="editMarcaNombre">
+                                    <Form.Label>Nombre de la Marca</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="nombre"
+                                        value={editFormData.nombre}
+                                        onChange={handleEditFormChange}
+                                        required
+                                    />
+                                </Form.Group>
+                                <Form.Group className="mb-3" controlId="editMarcaImagen">
+                                    <Form.Label>URL de la Imagen (Logo)</Form.Label>
+                                    <InputGroup>
+                                        <InputGroup.Text><FontAwesomeIcon icon={faImage} /></InputGroup.Text>
+                                        <Form.Control
+                                            type="url"
+                                            name="imagen"
+                                            value={editFormData.imagen}
+                                            onChange={handleEditFormChange}
+                                            placeholder="Ej: https://ejemplo.com/logo.png"
+                                        />
+                                    </InputGroup>
+                                    {renderImagePreview(editFormData.imagen, editFormData.nombre)}
+                                </Form.Group>
+                            </>
                         )}
-                      </td>
-                      <td className="text-center">
-                        <Button
-                          variant="warning"
-                          size="sm"
-                          onClick={() => handleEditClick(marca)}
-                          className="me-2"
-                        >
-                          {/* Icono de editar SVG */}
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-pencil-square" viewBox="0 0 16 16">
-                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.121l6.145-6.145z"/>
-                            <path fillRule="evenodd" d="M3.793 12.424V14.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 .5-.5v-1.077c.18-.088.358-.19.531-.309L15.5 3.51a1 1 0 0 0-1.414-1.414L10 8.086 4.707 2.793a1 1 0 0 0-1.414 1.414L8.086 10 2.793 4.707a1 1 0 0 0-1.414 1.414L6.646 11.5c-.119.173-.221.35-.309.531H3.5a.5.5 0 0 0-.5.5v.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 .5-.5V14.5a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 .5-.5V12.424l-3.207-3.207a.5.5 0 0 0-.707 0L.146 10.854a.5.5 0 0 0 0 .708L5.707 16.5a.5.5 0 0 0 .707 0L15.854 6.854a.5.5 0 0 0 0-.708L10.854.146a.5.5 0 0 0-.708 0zM15 15a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V12a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3z"/>
-                          </svg>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                            <FontAwesomeIcon icon={faTimes} className="me-2" />
+                            Cancelar
                         </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDelete(marca.id)}
-                        >
-                          {/* Icono de eliminar SVG */}
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-trash" viewBox="0 0 16 16">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13V9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4H2.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1h.5a1 1 0 0 1 1 1V3zM3.5 1h8a.5.5 0 0 1 0 1h-8a.5.5 0 0 1 0-1zM4 4h8V9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4zm4 4.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V8.5zm-3 0a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V8.5zm6 0a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V8.5z"/>
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                          </svg>
+                        <Button variant="primary" type="submit" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                                    Guardando...
+                                </>
+                            ) : (
+                                <>
+                                    <FontAwesomeIcon icon={faSave} className="me-2" />
+                                    Guardar Cambios
+                                </>
+                            )}
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
-    </Container>
-  );
+                    </Modal.Footer>
+                </Form>
+            </Modal>
+        </Container>
+    );
 };
 
-export default MarcaPage;
+export default MarcasPage;
