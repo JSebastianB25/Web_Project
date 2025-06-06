@@ -1,283 +1,300 @@
-// src/pages/FacturasPage.js
-import React, { useState, useEffect } from 'react';
+// web-client/src/pages/FacturasPage.js
 
-// Si usas un archivo CSS global (ej. App.css), asegúrate de que las clases usadas aquí estén definidas allí.
-// Si prefieres un CSS específico para esta página, crea FacturasPage.css e impórtalo:
-// import './FacturasPage.css';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faSearch, faEye, faDollarSign, faTrash
+} from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import { Container, Row, Col, Card, Form, InputGroup, Button, Table, Modal } from 'react-bootstrap';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+const API_FACTURAS_URL = `${API_BASE_URL}/facturas/`;
 
 const FacturasPage = () => {
-  const [facturas, setFacturas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [actionMessage, setActionMessage] = useState({ type: '', text: '' }); // Para mensajes de éxito/error de acciones
+    const [facturas, setFacturas] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState(''); // Usado para ID o nombre de cliente
+    const [searchDateStart, setSearchDateStart] = useState(null);
+    const [searchDateEnd, setSearchDateEnd] = useState(null);
+    const [showInvoiceDetailsModal, setShowInvoiceDetailsModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Estados para estadísticas resumen
-  const [totalFacturas, setTotalFacturas] = useState(0);
-  const [totalVentasGlobal, setTotalVentasGlobal] = useState(0);
+    // --- Funciones de Carga de Datos ---
+    const fetchFacturas = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const params = new URLSearchParams();
 
-  // Estados para el modal de detalles
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedFacturaDetails, setSelectedFacturaDetails] = useState(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [detailsError, setDetailsError] = useState(null);
+            // <--- ¡CAMBIO AQUÍ! ENVÍA UN SOLO PARÁMETRO 'search'
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
 
+            // Filtrar por rango de fechas (estos filtros permanecen como antes)
+            if (searchDateStart) {
+                // Asegúrate de que la fecha se formateé correctamente al inicio del día para 'gte'
+                params.append('fecha__gte', format(searchDateStart, "yyyy-MM-dd'T'00:00:00"));
+            }
+            if (searchDateEnd) {
+                // Asegúrate de que la fecha se formateé correctamente al final del día para 'lte'
+                params.append('fecha__lte', format(searchDateEnd, "yyyy-MM-dd'T'23:59:59"));
+            }
+            
+            // Construir la URL completa con los parámetros
+            const url = `${API_FACTURAS_URL}?${params.toString()}`;
+            console.log("Fetching URL:", url); // <--- ¡Útil para depurar!
 
-  useEffect(() => {
-    fetchFacturas();
-  }, []);
+            const response = await axios.get(url);
+            setFacturas(response.data);
+        } catch (err) {
+            console.error('Error fetching invoices:', err.response ? err.response.data : err.message);
+            setError('Error al cargar las facturas.');
+            Swal.fire('Error', `No se pudieron cargar el historial de facturas. Detalles: ${err.response?.data?.detail || err.message}`, 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [searchTerm, searchDateStart, searchDateEnd]);
 
-  // Función para obtener la lista de facturas
-  const fetchFacturas = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('http://localhost:8000/api/facturas/');
-      if (!response.ok) {
-        throw new Error(`Error al cargar facturas: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setFacturas(data);
-
-      const sumTotal = data.reduce((sum, factura) => sum + parseFloat(factura.total), 0);
-      setTotalFacturas(data.length);
-      setTotalVentasGlobal(sumTotal);
-
-    } catch (err) {
-      console.error("Error al obtener las facturas:", err);
-      setError({ message: "No se pudieron cargar las facturas. Intenta de nuevo más tarde." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Función para obtener los detalles de una factura específica
-  const handleViewDetails = async (facturaId) => {
-    setDetailsLoading(true);
-    setDetailsError(null);
-    setSelectedFacturaDetails(null); // Limpiar detalles anteriores
-    setShowDetailsModal(true); // Abrir el modal inmediatamente, mostrando estado de carga
-
-    try {
-      const response = await fetch(`http://localhost:8000/api/facturas/${facturaId}/`);
-      if (!response.ok) {
-        throw new Error(`Error al cargar detalles de factura: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setSelectedFacturaDetails(data);
-    } catch (err) {
-      console.error("Error al obtener detalles de factura:", err);
-      setDetailsError({ message: "No se pudieron cargar los detalles de la factura." });
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
-
-  const closeDetailsModal = () => {
-    setShowDetailsModal(false);
-    setSelectedFacturaDetails(null);
-    setDetailsError(null); // Limpiar errores al cerrar
-  };
-
-  // Función para eliminar una factura
-  const handleDeleteFactura = async (facturaId) => {
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar la factura #${facturaId}?
-    ¡ADVERTENCIA!: Esta acción debería revertir el stock de los productos asociados en el sistema. Asegúrate de que el backend maneje esta lógica.`)) {
-      return;
-    }
-
-    try {
-      setActionMessage({ type: 'info', text: 'Eliminando factura...' });
-      const response = await fetch(`http://localhost:8000/api/facturas/${facturaId}/`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.status === 204) {
-        setActionMessage({ type: 'success', text: `Factura #${facturaId} eliminada exitosamente.` });
+    useEffect(() => {
         fetchFacturas();
-      } else if (response.status === 404) {
-         throw new Error(`Factura #${facturaId} no encontrada.`);
-      } else {
-        const errorData = await response.json();
-        throw new Error(`Error al eliminar factura: ${errorData.detail || response.statusText}`);
-      }
-    } catch (err) {
-      console.error("Error al eliminar factura:", err);
-      setActionMessage({ type: 'error', text: err.message || "Ocurrió un error desconocido al eliminar la factura." });
-    }
-  };
+    }, [fetchFacturas]);
 
-  // Renderizado condicional para estados de carga y error (de la lista principal)
-  if (loading) {
+    const handleSearch = () => {
+        fetchFacturas();
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setSearchDateStart(null);
+        setSearchDateEnd(null);
+    };
+
+    const handleViewInvoiceDetails = (invoice) => {
+        setSelectedInvoice(invoice);
+        setShowInvoiceDetailsModal(true);
+    };
+
+    const handleDeleteInvoice = async (invoiceId) => {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡Esta acción eliminará la factura permanentemente y devolverá el stock! ¡No se puede revertir!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, Eliminar factura',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await axios.delete(`${API_FACTURAS_URL}${invoiceId}/`);
+                    Swal.fire(
+                        '¡Eliminada!',
+                        'La factura ha sido eliminada y el stock devuelto.',
+                        'success'
+                    );
+                    fetchFacturas();
+                } catch (error) {
+                    console.error('Error al eliminar la factura:', error);
+                    Swal.fire(
+                        'Error',
+                        `No se pudo eliminar la factura: ${error.response?.data?.error || error.message}`,
+                        'error'
+                    );
+                }
+            }
+        });
+    };
+
     return (
-      <div className="page-content">
-        <div className="loading-message">
-          <span role="img" aria-label="loading">⏳</span> Cargando facturas...
-        </div>
-      </div>
-    );
-  }
+        <Container fluid className="facturas-page p-3">
+            <h2 className="mb-4">Historial de Facturas</h2>
 
-  if (error) {
-    return (
-      <div className="page-content">
-        <div className="error-message">
-          <span role="img" aria-label="error">❌</span> {error.message}
-        </div>
-      </div>
-    );
-  }
+            <Card className="mb-4">
+                <Card.Header>Buscador de Facturas</Card.Header>
+                <Card.Body>
+                    <Row>
+                        <Col md={6}>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Buscar por ID o Cliente:</Form.Label>
+                                <InputGroup>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Buscar por ID de factura o nombre de cliente"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleSearch();
+                                            }
+                                        }}
+                                    />
+                                    <Button variant="outline-secondary" onClick={handleSearch}>
+                                        <FontAwesomeIcon icon={faSearch} />
+                                    </Button>
+                                </InputGroup>
+                            </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Fecha Desde:</Form.Label>
+                                <DatePicker
+                                    selected={searchDateStart}
+                                    onChange={(date) => setSearchDateStart(date)}
+                                    selectsStart
+                                    startDate={searchDateStart}
+                                    endDate={searchDateEnd}
+                                    placeholderText="Fecha inicio"
+                                    className="form-control"
+                                    dateFormat="dd/MM/yyyy"
+                                    isClearable
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Fecha Hasta:</Form.Label>
+                                <DatePicker
+                                    selected={searchDateEnd}
+                                    onChange={(date) => setSearchDateEnd(date)}
+                                    selectsEnd
+                                    startDate={searchDateStart}
+                                    endDate={searchDateEnd}
+                                    minDate={searchDateStart}
+                                    placeholderText="Fecha fin"
+                                    className="form-control"
+                                    dateFormat="dd/MM/yyyy"
+                                    isClearable
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row className="mt-3">
+                        <Col className="d-flex justify-content-end">
+                            <Button variant="secondary" onClick={handleClearSearch} className="me-2">
+                                Limpiar Filtros
+                            </Button>
+                            <Button variant="primary" onClick={handleSearch}>
+                                <FontAwesomeIcon icon={faSearch} className="me-2" /> Buscar
+                            </Button>
+                        </Col>
+                    </Row>
+                </Card.Body>
+            </Card>
 
-  return (
-    <div className="page-content factura-page-container">
-      <div className="header-container">
-        <h2 className="page-heading">🧾 Visor y Gestión de Facturas</h2>
-      </div>
-
-      {/* Mensajes de acciones (eliminar) */}
-      {actionMessage.text && (
-        <div className={`alert-message ${actionMessage.type}-message`}>
-          <span role="img" aria-label="icon">
-            {actionMessage.type === 'success' ? '✅' : actionMessage.type === 'error' ? '❌' : 'ℹ️'}
-          </span> {actionMessage.text}
-        </div>
-      )}
-
-      {/* Sección de Resumen Gráfico (Estadísticas Clave) */}
-      <div className="summary-cards-container">
-        <div className="summary-card">
-          <h3>Total de Facturas</h3>
-          <p className="summary-value">{totalFacturas}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Total de Ventas Global</h3>
-          <p className="summary-value">${totalVentasGlobal.toFixed(2)}</p>
-        </div>
-      </div>
-
-      {/* Listado de Facturas en tabla */}
-      {facturas.length === 0 ? (
-        <p className="empty-state">No hay facturas registradas.</p>
-      ) : (
-        <div className="table-container">
-          <h3>Detalle de Facturas</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>ID Factura</th>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Forma de Pago</th>
-                <th>Total</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {facturas.map((factura) => (
-                <tr key={factura.id}>
-                  <td>{factura.id}</td>
-                  <td>{new Date(factura.fecha).toLocaleDateString()}</td>
-                  {/* Aquí usamos cliente_nombre que esperamos del serializer anidado */}
-                  <td>{factura.cliente_nombre || `ID: ${factura.cliente}`}</td>
-                  {/* Aquí usamos forma_pago_nombre que esperamos del serializer anidado */}
-                  <td>{factura.forma_pago_nombre || `ID: ${factura.forma_pago}`}</td>
-                  <td>${parseFloat(factura.total).toFixed(2)}</td>
-                  <td>{factura.estado}</td>
-                  <td>
-                    <button
-                      className="view-button"
-                      onClick={() => handleViewDetails(factura.id)}
-                    >
-                      Ver Detalles
-                    </button>
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDeleteFactura(factura.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modal de Detalles de Factura */}
-      {showDetailsModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Detalles de Factura #{selectedFacturaDetails ? selectedFacturaDetails.id : ''}</h3>
-              <button className="close-button" onClick={closeDetailsModal}>&times;</button>
-            </div>
-            <div className="modal-body">
-              {detailsLoading && <div className="loading-message">Cargando detalles...</div>}
-              {detailsError && <div className="error-message">{detailsError.message}</div>}
-
-              {selectedFacturaDetails && (
-                <div className="invoice-details-grid">
-                  <div className="detail-item">
-                    <strong>Fecha:</strong> {new Date(selectedFacturaDetails.fecha).toLocaleDateString()}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Cliente:</strong> {selectedFacturaDetails.cliente_nombre || `ID: ${selectedFacturaDetails.cliente}`}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Forma de Pago:</strong> {selectedFacturaDetails.forma_pago_nombre || `ID: ${selectedFacturaDetails.forma_pago}`}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Usuario:</strong> {selectedFacturaDetails.usuario_nombre || `ID: ${selectedFacturaDetails.usuario}`}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Estado:</strong> {selectedFacturaDetails.estado}
-                  </div>
-                  <div className="detail-item total-amount">
-                    <strong>Total Factura:</strong> ${parseFloat(selectedFacturaDetails.total).toFixed(2)}
-                  </div>
-
-                  <h4>Productos de la Venta:</h4>
-                  {selectedFacturaDetails.detalle_ventas && selectedFacturaDetails.detalle_ventas.length > 0 ? (
-                    <div className="products-list-container">
-                      {selectedFacturaDetails.detalle_ventas.map((detalle) => (
-                        <div key={detalle.id} className="product-detail-card">
-                          {detalle.producto && (
-                            <>
-                              <div className="product-image-wrapper">
-                                {/* Asegúrate que detalle.producto.imagen_url exista y sea válido */}
-                                {detalle.producto.imagen_url ? (
-                                  <img src={detalle.producto.imagen_url} alt={detalle.producto.nombre_producto} className="product-thumb" />
-                                ) : (
-                                  <div className="no-image-placeholder">No Image</div>
-                                )}
-                              </div>
-                              <div className="product-info">
-                                <strong>{detalle.producto.nombre_producto}</strong>
-                                <p>Cantidad: {detalle.cantidad}</p>
-                                <p>Precio Unitario: ${parseFloat(detalle.precio_unitario_venta).toFixed(2)}</p>
-                                <p>Subtotal: ${parseFloat(detalle.subtotal).toFixed(2)}</p>
-                              </div>
-                            </>
-                          )}
+            <Card>
+                <Card.Header>Facturas</Card.Header>
+                <Card.Body>
+                    {loading ? (
+                        <p>Cargando facturas...</p>
+                    ) : error ? (
+                        <p className="text-danger">{error}</p>
+                    ) : facturas.length === 0 ? (
+                        <p>No se encontraron facturas.</p>
+                    ) : (
+                        <div className="table-responsive">
+                            <Table striped bordered hover className="mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>ID Factura</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                        <th className="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {facturas.map(factura => (
+                                        <tr key={factura.id}>
+                                            <td>{factura.id_factura}</td>
+                                            <td>{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
+                                            <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(factura.total || 0).toFixed(2)}</td>
+                                            <td>
+                                                <span className={`badge ${factura.estado === 'Completada' ? 'bg-success' : (factura.estado === 'Anulada' ? 'bg-secondary' : 'bg-danger')}`}>
+                                                    {factura.estado}
+                                                </span>
+                                            </td>
+                                            <td>{new Date(factura.fecha).toLocaleString()}</td>
+                                            <td className="text-center">
+                                                <Button
+                                                    variant="primary"
+                                                    size="sm"
+                                                    className="me-1"
+                                                    onClick={() => handleViewInvoiceDetails(factura)}
+                                                >
+                                                    <FontAwesomeIcon icon={faEye} />
+                                                </Button>
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteInvoice(factura.id)}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p>No hay productos registrados para esta venta.</p>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="close-button" onClick={closeDetailsModal}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                    )}
+                </Card.Body>
+            </Card>
+
+            {/* Modal para ver detalles de la factura */}
+            <Modal show={showInvoiceDetailsModal} onHide={() => setShowInvoiceDetailsModal(false)} size="lg">
+                <Modal.Header closeButton>
+                    <Modal.Title>Detalles de Factura #{selectedInvoice?.id_factura}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {selectedInvoice && (
+                        <>
+                            <p><strong>Cliente:</strong> {selectedInvoice.cliente?.nombre || 'N/A'}</p>
+                            <p><strong>Fecha:</strong> {new Date(selectedInvoice.fecha).toLocaleString()}</p>
+                            <p><strong>Forma de Pago:</strong> {selectedInvoice.forma_pago?.metodo || 'N/A'}</p>
+                            <p><strong>Estado:</strong> {selectedInvoice.estado}</p>
+                            <p><strong>Usuario:</strong> {selectedInvoice.usuario?.username || 'N/A'}</p>
+                            <h4 className="mt-4">Productos:</h4>
+                            <Table striped bordered hover size="sm">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unitario</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedInvoice.detalle_ventas && selectedInvoice.detalle_ventas.map(item => (
+                                        <tr key={item.id}>
+                                            <td>{item.producto?.nombre || 'N/A'}</td>
+                                            <td>{item.cantidad}</td>
+                                            <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(item.precio_unitario || 0).toFixed(2)}</td>
+                                            <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(item.subtotal || 0).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                            <h3 className="text-end mt-4">Total: <FontAwesomeIcon icon={faDollarSign} /> {parseFloat(selectedInvoice.total || 0).toFixed(2)}</h3>
+                        </>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowInvoiceDetailsModal(false)}>
+                        Cerrar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </Container>
+    );
 };
 
 export default FacturasPage;

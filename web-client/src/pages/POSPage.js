@@ -1,14 +1,14 @@
 // web-client/src/pages/POSPage.js
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback} from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
     InputGroup, Card, Modal, ListGroup
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faPlus, faTrash, faShoppingCart, faFileInvoice, faSearch, faSave, faTimes,
-    faUser, faMoneyBillWave, faBox, faCheckCircle, faEuroSign, faEdit, faMinusCircle, faDollarSign,
+    faPlus, faTrash, faShoppingCart, faFileInvoice, faSearch, faTimes,
+    faUser, faMoneyBillWave, faCheckCircle, faDollarSign,
     faEye, faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
@@ -50,7 +50,7 @@ const POSPage = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     // Referencia al input de cantidad en el modal de búsqueda de productos
-    const quantityInputRef = useRef(null);
+    
 
     // Asume un usuario por defecto para las facturas (podrías cambiar esto con autenticación)
     const [defaultUserId, setDefaultUserId] = useState(null);
@@ -318,7 +318,7 @@ const POSPage = () => {
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, anularla!',
+            confirmButtonText: 'Sí, anular y regresar stock !',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
             if (result.isConfirmed) {
@@ -348,7 +348,7 @@ const POSPage = () => {
     const handleCompleteInvoice = async (invoiceId) => {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: '¡Esta acción marcará la factura como Completada y no se podrá revertir fácilmente!',
+        text: '¡Esta acción marcará la factura como Completada y no se podrá revertir a Pendiente!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#28a745', // Verde para "Completar"

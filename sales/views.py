@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from rest_framework.filters import SearchFilter # <-- ¡Añade esta importación!
 
 # Importa modelos desde su propio models.py
 from .models import Cliente, Factura, DetalleVenta, Cliente
@@ -26,6 +29,22 @@ class ClienteViewSet(viewsets.ModelViewSet):
 class FacturaViewSet(viewsets.ModelViewSet):
     queryset = Factura.objects.all().order_by('-fecha') # Ordenar por fecha descendente
     serializer_class = FacturaSerializer
+
+    # Añadir backends de filtrado
+    filter_backends = [DjangoFilterBackend, SearchFilter, filters.OrderingFilter] # <--- ¡Añade SearchFilter!
+    # Definir los campos por los que se puede filtrar (aquí 'fecha')
+    filterset_fields = {
+        'fecha': ['gte', 'lte', 'exact', 'range'], # Permite buscar por fecha exacta, rango, mayor o igual, menor o igual
+        'id_factura': ['exact', 'icontains'], # Permite buscar por ID de factura exacto o que contenga
+        'cliente__nombre': ['icontains'], # Buscar cliente por nombre
+        'estado': ['exact'], # Buscar por estado exacto
+    }
+     # Definir los campos por los que SearchFilter buscará (texto libre con OR)
+    # <--- ¡Añade esto!
+    search_fields = ['id_factura', 'cliente__nombre'] # Buscará en id_factura O en nombre del cliente
+
+    # Permite ordenar los resultados por fecha
+    ordering_fields = ['fecha', 'total']
 
     # Acción personalizada para completar una factura
     @action(detail=True, methods=['post'], url_path='completar')

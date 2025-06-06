@@ -89,7 +89,7 @@ const Navbar = () => {
                 <NavDropdown.Item>Generar Venta</NavDropdown.Item>
               </LinkContainer>
               <NavDropdown.Divider />
-              <LinkContainer to="/listar/facturas">
+              <LinkContainer to="/facturas">
                 <NavDropdown.Item>Ver Facturas</NavDropdown.Item>
               </LinkContainer>
               <LinkContainer to="/otros">

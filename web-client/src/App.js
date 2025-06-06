@@ -16,6 +16,7 @@ import RolesPage from './pages/RolesPage';
 import PermisosPage from './pages/PermisosPage';
 import UsuariosPage from './pages/UsuariosPage';
 import POSPage from './pages/POSPage';
+import FacturasPage from './pages/FacturasPage';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/permisos" element={<PermisosPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path='/pos' element={<POSPage />} />
+        <Route path='/facturas' element={<FacturasPage />} />
         
         {/* Agrega otras rutas aquí */}
       </Routes>
