@@ -82,6 +82,21 @@ const Navbar = () => {
                 <NavDropdown.Item>Permisos</NavDropdown.Item>
               </LinkContainer>
               </NavDropdown>
+            
+            {/* Punto de Venta */}
+            <NavDropdown title="Ventas" id="nav-dropdown-ventas">
+              <LinkContainer to="/pos">
+                <NavDropdown.Item>Generar Venta</NavDropdown.Item>
+              </LinkContainer>
+              <NavDropdown.Divider />
+              <LinkContainer to="/listar/facturas">
+                <NavDropdown.Item>Ver Facturas</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/otros">
+                <NavDropdown.Item>Otros</NavDropdown.Item>
+              </LinkContainer>
+              </NavDropdown>
+
 
           </Nav>
         </BSNavbar.Collapse>

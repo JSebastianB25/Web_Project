@@ -1,488 +1,681 @@
-import React, { useState, useEffect, useCallback } from 'react';
-// Asegúrate de que esta ruta sea correcta para tu archivo CSS
-// Si POSPage.js está en src/pages/ y POSPage.css está en src/styles/, esta ruta es correcta:
-import '../styles/POSPage.css'; 
+// web-client/src/pages/POSPage.js
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+    Container, Row, Col, Form, Button, Table, Spinner,
+    InputGroup, Card, Modal, ListGroup
+} from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faPlus, faTrash, faShoppingCart, faFileInvoice, faSearch, faSave, faTimes,
+    faUser, faMoneyBillWave, faBox, faCheckCircle, faEuroSign, faEdit, faMinusCircle, faDollarSign
+} from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+const API_PRODUCTOS_URL = `${API_BASE_URL}/productos/`;
+const API_CLIENTES_URL = `${API_BASE_URL}/clientes/`;
+const API_FORMAS_PAGO_URL = `${API_BASE_URL}/formas_pago/`;
+const API_USUARIOS_URL = `${API_BASE_URL}/usuarios/`; // Para obtener el usuario actual, si lo implementas
+const API_FACTURAS_URL = `${API_BASE_URL}/facturas/`;
 
 const POSPage = () => {
-  // --- Estados para Productos ---
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [productError, setProductError] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  // --- Estados para Carrito de Compras ---
-  const [cartItems, setCartItems] = useState([]); // [{ product: {}, quantity: N, subtotal: M }]
+    // Datos de la factura actual
+    const [currentSale, setCurrentSale] = useState({
+        cliente: '', // ID del cliente
+        forma_pago: '', // ID de la forma de pago
+        usuario: '', // ID del usuario actual (podría ser fijo o del usuario logueado)
+        items: [], // [{ producto_id: 1, nombre: "Laptop", cantidad: 1, precio_unitario: 1200.00, stock_disponible: 5 }]
+        total: 0.00,
+    });
 
-  // --- Estados para Cliente ---
-  const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [filteredClients, setFilteredClients] = useState([]);
-  const [loadingClients, setLoadingClients] = useState(true);
-  const [clientError, setClientError] = useState(null);
+    // Listas para selectores
+    const [clientes, setClientes] = useState([]);
+    const [formasPago, setFormasPago] = useState([]);
+    const [productosDisponibles, setProductosDisponibles] = useState([]); // Productos para buscar
+    const [facturas, setFacturas] = useState([]); // Historial de facturas
 
-  // --- Estados para Forma de Pago ---
-  const [paymentMethods, setPaymentMethods] = useState([]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true);
-  const [paymentMethodError, setPaymentMethodError] = useState(null);
+    // Estado para la búsqueda de productos
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
 
-  // --- Estados para Procesamiento de Venta ---
-  const [processingSale, setProcessingSale] = useState(false);
-  const [saleMessage, setSaleMessage] = useState(null); // { type: 'success'|'error'|'info', text: 'Mensaje' }
-  const [showSaleConfirmationModal, setShowSaleConfirmationModal] = useState(false);
-  const [saleResult, setSaleResult] = useState(null); // Datos de la factura creada
+    // Modales
+    const [showProductSearchModal, setShowProductSearchModal] = useState(false);
+    const [showInvoiceDetailsModal, setShowInvoiceDetailsModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+    // Referencia al input de cantidad en el modal de búsqueda de productos
+    const quantityInputRef = useRef(null);
 
-  // --- Helper para URL de Imagen (ajusta según tu configuración de Django) ---
-  const getProductImageUrl = (imagePath) => {
-    if (!imagePath) {
-      // Ruta a una imagen por defecto si el producto no tiene foto
-      return '/path/to/default_image.png'; // Cambia esto por una imagen de tu proyecto
-    }
-    // Si Django sirve imágenes desde /media/ y tu campo 'imagen' guarda solo el nombre o ruta relativa
-    // return `http://localhost:8000/media/${imagePath}`;
-    // Si tu campo 'imagen' ya guarda la URL completa (ej. de un CDN o URL absoluta), usa directamente
-    return imagePath;
-  };
+    // Asume un usuario por defecto para las facturas (podrías cambiar esto con autenticación)
+    const [defaultUserId, setDefaultUserId] = useState(null);
 
-  // --- Funciones de Carga de Datos Iniciales ---
+    // --- Carga Inicial de Datos ---
+    const fetchInitialData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [
+                clientesRes,
+                formasPagoRes,
+                productosRes,
+                usuariosRes, // Para obtener el ID del usuario por defecto
+                facturasRes
+            ] = await Promise.all([
+                axios.get(API_CLIENTES_URL),
+                axios.get(API_FORMAS_PAGO_URL),
+                axios.get(API_PRODUCTOS_URL),
+                axios.get(API_USUARIOS_URL),
+                axios.get(API_FACTURAS_URL)
+            ]);
 
-  const fetchProducts = useCallback(async () => {
-    setLoadingProducts(true);
-    setProductError(null);
-    try {
-      const response = await fetch('http://localhost:8000/api/productos/');
-      if (!response.ok) {
-        throw new Error(`Error al cargar productos: ${response.statusText}`);
-      }
-      const data = await response.json();
-      // MODIFICACION: Convertir precio_venta a número al cargar
-      const processedData = data.map(product => ({
-        ...product,
-        precio_venta: parseFloat(product.precio_venta) || 0 // Asegura que sea un número, o 0 si es inválido
-      }));
-      setProducts(processedData);
-      setFilteredProducts(processedData); // Inicialmente, todos los productos están filtrados
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setProductError("No se pudieron cargar los productos.");
-    } finally {
-      setLoadingProducts(false);
-    }
-  }, []);
+            setClientes(clientesRes.data);
+            setFormasPago(formasPagoRes.data);
+            setProductosDisponibles(productosRes.data);
+            setFacturas(facturasRes.data);
 
-  const fetchClients = useCallback(async () => {
-    setLoadingClients(true);
-    setClientError(null);
-    try {
-      const response = await fetch('http://localhost:8000/api/clientes/');
-      if (!response.ok) {
-        throw new Error(`Error al cargar clientes: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setClients(data);
-      setFilteredClients(data); // Inicialmente, todos los clientes están filtrados
-    } catch (err) {
-      console.error("Error fetching clients:", err);
-      setClientError("No se pudieron cargar los clientes.");
-    } finally {
-      setLoadingClients(false);
-    }
-  }, []);
+            // Asignar un usuario por defecto si hay alguno
+            if (usuariosRes.data.length > 0) {
+                setDefaultUserId(usuariosRes.data[0].id); // Usar el primer usuario encontrado
+                setCurrentSale(prev => ({ ...prev, usuario: usuariosRes.data[0].id }));
+            } else {
+                Swal.fire('Advertencia', 'No se encontraron usuarios. Por favor, crea al menos un usuario para poder crear facturas.', 'warning');
+                setError('No hay usuarios disponibles para crear facturas.');
+            }
 
-  const fetchPaymentMethods = useCallback(async () => {
-    setLoadingPaymentMethods(true);
-    setPaymentMethodError(null);
-    try {
-      // MODIFICACION: Cambiado a 'formas-pago' con guion
-      const response = await fetch('http://localhost:8000/api/formas_pago/'); 
-      if (!response.ok) {
-        throw new Error(`Error al cargar formas de pago: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setPaymentMethods(data);
-    } catch (err) {
-      console.error("Error fetching payment methods:", err);
-      setPaymentMethodError("No se pudieron cargar las formas de pago.");
-    } finally {
-      setLoadingPaymentMethods(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-    fetchClients();
-    fetchPaymentMethods();
-  }, [fetchProducts, fetchClients, fetchPaymentMethods]); // Dependencias para useCallback
-
-  // --- Lógica de Filtrado de Productos ---
-  useEffect(() => {
-    if (searchTerm) {
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      const filtered = products.filter(product =>
-        product.nombre.toLowerCase().includes(lowerCaseSearchTerm) ||
-        product.referencia_producto.toLowerCase().includes(lowerCaseSearchTerm)
-      );
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts(products);
-    }
-  }, [searchTerm, products]);
-
-  // --- Lógica de Filtrado de Clientes ---
-  useEffect(() => {
-    if (clientSearchTerm) {
-      const lowerCaseSearchTerm = clientSearchTerm.toLowerCase();
-      const filtered = clients.filter(client =>
-        client.nombre.toLowerCase().includes(lowerCaseSearchTerm) ||
-        (client.email && client.email.toLowerCase().includes(lowerCaseSearchTerm)) || // Agregado check para email
-        (client.telefono && client.telefono.includes(lowerCaseSearchTerm)) // Agregado check para telefono
-      );
-      setFilteredClients(filtered);
-    } else {
-      setFilteredClients(clients);
-    }
-  }, [clientSearchTerm, clients]);
-
-
-  // --- Lógica del Carrito ---
-
-  const handleAddProductToCart = (productToAdd) => {
-    setSaleMessage(null); // Limpiar mensajes al añadir producto
-
-    const existingItemIndex = cartItems.findIndex(item => item.product.referencia_producto === productToAdd.referencia_producto);
-
-    if (existingItemIndex > -1) {
-      // Si el producto ya está en el carrito, incrementa la cantidad
-      const updatedCart = cartItems.map((item, index) => {
-        if (index === existingItemIndex) {
-          const newQuantity = item.quantity + 1;
-          if (newQuantity > productToAdd.stock) {
-            setSaleMessage({ type: 'error', text: `Stock insuficiente para ${productToAdd.nombre}.` });
-            return item; // No actualizar si excede el stock
-          }
-          // MODIFICACION: Asegurar que subtotal se calcule con números
-          const newSubtotal = parseFloat(newQuantity * productToAdd.precio_venta) || 0;
-          return {
-            ...item,
-            quantity: newQuantity,
-            subtotal: newSubtotal,
-          };
+        } catch (err) {
+            console.error('Error fetching initial data:', err.response ? err.response.data : err.message);
+            setError('Error al cargar datos iniciales.');
+            Swal.fire('Error', 'No se pudieron cargar los datos necesarios para el POS.', 'error');
+        } finally {
+            setLoading(false);
         }
-        return item;
-      });
-      setCartItems(updatedCart);
-    } else {
-      // Si el producto no está en el carrito, añádelo
-      if (productToAdd.stock <= 0) {
-        setSaleMessage({ type: 'error', text: `Producto "${productToAdd.nombre}" sin stock disponible.` });
-        return;
-      }
-      setCartItems([
-        ...cartItems,
-        {
-          product: productToAdd,
-          quantity: 1,
-          subtotal: parseFloat(productToAdd.precio_venta) || 0, // Inicia subtotal como número
-        },
-      ]);
-    }
-  };
+    }, []);
 
-  const updateItemQuantity = (productRef, newQuantity) => {
-    setSaleMessage(null);
-    const updatedCart = cartItems.map(item => {
-      if (item.product.referencia_producto === productRef) {
-        if (newQuantity <= 0) {
-          // Si la cantidad es 0 o menos, remover el item
-          return null; // Marcar para eliminación
-        }
-        if (newQuantity > item.product.stock) {
-          setSaleMessage({ type: 'error', text: `No hay suficiente stock para ${item.product.nombre}. Max: ${item.product.stock}` });
-          return item;
-        }
-        // MODIFICACION: Asegurar que subtotal se calcule con números
-        const newSubtotal = parseFloat(newQuantity * item.product.precio_venta) || 0;
-        return {
-          ...item,
-          quantity: newQuantity,
-          subtotal: newSubtotal,
-        };
-      }
-      return item;
-    }).filter(Boolean); // Eliminar los items marcados como null
-    setCartItems(updatedCart);
-  };
+    useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
 
-  const removeItemFromCart = (productRef) => {
-    setSaleMessage(null);
-    setCartItems(cartItems.filter(item => item.product.referencia_producto !== productRef));
-  };
-
-  const calculateTotal = () => {
-    // MODIFICACION: Asegurar que la suma se hace con números válidos
-    return cartItems.reduce((acc, item) => acc + (parseFloat(item.subtotal) || 0), 0);
-  };
-
-  const handleClearCart = () => {
-    setCartItems([]);
-    setSelectedClient(null);
-    setSelectedPaymentMethod(null);
-    setSaleMessage(null);
-    setSaleResult(null);
-    setShowSaleConfirmationModal(false);
-  };
-
-  // --- Lógica de Procesamiento de Venta ---
-  const handleProcessSale = async () => {
-    if (cartItems.length === 0) {
-      setSaleMessage({ type: 'error', text: 'El carrito de compras está vacío.' });
-      return;
-    }
-    if (!selectedClient) {
-      setSaleMessage({ type: 'error', text: 'Por favor, selecciona un cliente.' });
-      return;
-    }
-    if (!selectedPaymentMethod) {
-      setSaleMessage({ type: 'error', text: 'Por favor, selecciona una forma de pago.' });
-      return;
-    }
-
-    setProcessingSale(true);
-    setSaleMessage({ type: 'info', text: 'Procesando venta...' });
-
-    const saleData = {
-      cliente: selectedClient.id,
-      forma_pago: selectedPaymentMethod.id,
-      total: calculateTotal().toFixed(2), // Total ya es un número por calculateTotal()
-      estado: 'completada', // O el estado inicial que quieras (ej. 'pendiente')
-      // Si tienes un usuario autenticado en el frontend, podrías enviarlo así:
-      // usuario: ID_DEL_USUARIO_AUTENTICADO,
-      detalle_ventas: cartItems.map(item => ({
-        producto: item.product.referencia_producto, // Usar referencia_producto como PK del producto
-        cantidad: item.quantity,
-        // MODIFICACION: Asegurar que precio_unitario es número
-        precio_unitario: parseFloat(item.product.precio_venta) || 0,
-        // MODIFICACION: Asegurar que subtotal es número antes de toFixed
-        subtotal: (parseFloat(item.subtotal) || 0).toFixed(2),
-      })),
+    // --- Manejadores de Formulario de Factura ---
+    const handleSaleChange = (e) => {
+        const { name, value } = e.target;
+        setCurrentSale(prev => ({ ...prev, [name]: value }));
     };
 
-    try {
-      const response = await fetch('http://localhost:8000/api/facturas/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`, // Si usas autenticación
-        },
-        body: JSON.stringify(saleData),
-      });
+    // --- Búsqueda y Adición de Productos ---
+    useEffect(() => {
+        if (searchTerm) {
+            const filtered = productosDisponibles.filter(p =>
+                p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.referencia_producto.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setSearchResults(filtered);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchTerm, productosDisponibles]);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error al procesar venta:", errorData);
-        // Intentar obtener un mensaje de error más específico
-        let errorMessage = 'Error desconocido al procesar la venta.';
-        if (errorData && typeof errorData === 'object') {
-            if (errorData.non_field_errors) {
-                errorMessage = errorData.non_field_errors.join(' ');
-            } else if (errorData.detail) {
-                errorMessage = errorData.detail;
-            } else {
-                // Iterar sobre los errores de campo si existen
-                const fieldErrors = Object.keys(errorData).map(key => `${key}: ${errorData[key]}`).join('; ');
-                if (fieldErrors) {
-                    errorMessage = `Errores de validación: ${fieldErrors}`;
+    const handleSearchTermChange = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
+    const handleOpenProductSearchModal = () => {
+        setSearchTerm('');
+        setSearchResults([]);
+        setShowProductSearchModal(true);
+    };
+
+    const handleAddProductToSale = (product) => {
+        Swal.fire({
+            title: `Añadir "${product.nombre}"`,
+            html: `
+                <p>Stock disponible: ${product.stock}</p>
+                <input type="number" id="swal-quantity" class="swal2-input" placeholder="Cantidad" min="1" value="1">
+            `,
+            focusConfirm: false,
+            preConfirm: () => {
+                const quantity = parseInt(document.getElementById('swal-quantity').value, 10);
+                if (isNaN(quantity) || quantity <= 0) {
+                    Swal.showValidationMessage('Por favor, ingresa una cantidad válida.');
+                    return false;
+                }
+                if (quantity > product.stock) {
+                    Swal.showValidationMessage(`Cantidad excede el stock disponible (${product.stock}).`);
+                    return false;
+                }
+                return quantity;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const quantity = result.value;
+                const existingItemIndex = currentSale.items.findIndex(item => item.producto_id === product.referencia_producto);
+
+                let updatedItems;
+                if (existingItemIndex > -1) {
+                    // Si el producto ya está, actualiza la cantidad
+                    updatedItems = currentSale.items.map((item, index) =>
+                        index === existingItemIndex
+                            ? { ...item, cantidad: item.cantidad + quantity }
+                            : item
+                    );
+                    // Validación de stock total si se añade más a un ítem existente
+                    const totalQuantity = currentSale.items[existingItemIndex].cantidad + quantity;
+                    if (totalQuantity > product.stock) {
+                        Swal.fire('Error', `La cantidad total para ${product.nombre} (${totalQuantity}) excede el stock disponible (${product.stock}).`, 'error');
+                        return;
+                    }
+                } else {
+                    // Si es un producto nuevo, añádelo
+                    updatedItems = [
+                        ...currentSale.items,
+                        {
+                            producto_id: product.referencia_producto,
+                            nombre: product.nombre,
+                            referencia_producto: product.referencia_producto,
+                            cantidad: quantity,
+                            precio_unitario: parseFloat(product.precio_sugerido_venta), // Asume product.precio_sugerido_venta existe
+                            stock_disponible: product.stock // Para referencia visual
+                        }
+                    ];
+                }
+                
+                const newTotal = updatedItems.reduce((acc, item) => acc + (item.cantidad * parseFloat(item.precio_unitario || 0)), 0);
+                setCurrentSale(prev => ({ ...prev, items: updatedItems, total: newTotal }));
+                setShowProductSearchModal(false); // Cerrar modal después de añadir
+                Swal.fire('¡Añadido!', `${quantity} x ${product.nombre} añadido a la factura.`, 'success');
+            }
+        });
+    };
+
+    const handleUpdateItemQuantity = (index, newQuantity) => {
+        const itemToUpdate = currentSale.items[index];
+        const productInStock = productosDisponibles.find(p => p.id === itemToUpdate.producto_id);
+
+        if (!productInStock) {
+            Swal.fire('Error', 'Producto no encontrado en el stock disponible.', 'error');
+            return;
+        }
+
+        if (newQuantity <= 0) {
+            // Si la cantidad es 0 o menos, eliminar el ítem
+            handleRemoveItem(index);
+            return;
+        }
+
+        if (newQuantity > productInStock.stock) {
+            Swal.fire('Error', `La cantidad (${newQuantity}) excede el stock disponible (${productInStock.stock}).`, 'error');
+            return;
+        }
+
+        const updatedItems = currentSale.items.map((item, i) =>
+            i === index ? { ...item, cantidad: newQuantity } : item
+        );
+        const newTotal = updatedItems.reduce((acc, item) => acc + (item.cantidad * parseFloat(item.precio_unitario || 0)), 0);
+        setCurrentSale(prev => ({ ...prev, items: updatedItems, total: newTotal }));
+    };
+
+    const handleRemoveItem = (indexToRemove) => {
+        const updatedItems = currentSale.items.filter((_, index) => index !== indexToRemove);
+        const newTotal = updatedItems.reduce((acc, item) => acc + (item.cantidad * parseFloat(item.precio_unitario || 0)), 0);
+        setCurrentSale(prev => ({ ...prev, items: updatedItems, total: newTotal }));
+        Swal.fire('Eliminado', 'Producto retirado de la factura.', 'info');
+    };
+
+    // --- Finalizar Venta ---
+    const handleFinalizeSale = async () => {
+        if (!currentSale.cliente || !currentSale.forma_pago) {
+            Swal.fire('Advertencia', 'Por favor, selecciona un cliente y una forma de pago.', 'warning');
+            return;
+        }
+        if (currentSale.items.length === 0) {
+            Swal.fire('Advertencia', 'La factura no puede estar vacía. Añade al menos un producto.', 'warning');
+            return;
+        }
+        if (!defaultUserId) {
+             Swal.fire('Error', 'No hay un usuario asignado para crear la factura. Por favor, asegúrate de que haya al menos un usuario en el sistema.', 'error');
+             return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        // Prepara los detalles de venta para el backend
+        const detallesParaEnvio = currentSale.items.map(item => ({
+            producto_id: item.producto_id, // Usamos producto_id para el backend
+            cantidad: item.cantidad,
+            precio_unitario: item.precio_unitario,
+            // subtotal no se envía, el backend lo calcula
+        }));
+
+        const facturaPayload = {
+            cliente: parseInt(currentSale.cliente, 10),
+            forma_pago: parseInt(currentSale.forma_pago, 10),
+            usuario: defaultUserId, // Asigna el usuario por defecto
+            total: currentSale.total, // El backend lo recalculará, pero lo enviamos por si acaso
+            estado: 'Completada', // O el estado inicial que desees
+            detalle_ventas: detallesParaEnvio,
+        };
+
+        try {
+            const response = await axios.post(API_FACTURAS_URL, facturaPayload);
+            if (response.status === 201) {
+                Swal.fire('¡Venta Exitosa!', `Factura #${response.data.id_factura} creada.`, 'success');
+                // Reiniciar la venta actual
+                setCurrentSale({
+                    cliente: '',
+                    forma_pago: '',
+                    usuario: defaultUserId,
+                    items: [],
+                    total: 0.00,
+                });
+                fetchInitialData(); // Recargar facturas y productos para ver los cambios de stock
+            }
+        } catch (err) {
+            console.error('Error al finalizar la venta:', err.response ? err.response.data : err);
+            let errorMessage = 'Ocurrió un error al finalizar la venta.';
+            if (err.response && err.response.data) {
+                if (typeof err.response.data === 'object') {
+                    errorMessage = Object.values(err.response.data).flat().join(' ');
+                } else {
+                    errorMessage = err.response.data;
                 }
             }
-        } else if (typeof errorData === 'string') {
-            errorMessage = errorData;
+            setError(errorMessage);
+            Swal.fire('Error', errorMessage, 'error');
+        } finally {
+            setLoading(false);
         }
-        
-        throw new Error(errorMessage);
-      }
+    };
 
-      const result = await response.json();
-      setSaleResult(result); // Guarda la factura creada
-      setShowSaleConfirmationModal(true); // Muestra modal de confirmación
-      setSaleMessage({ type: 'success', text: `¡Venta procesada con éxito! Factura #${result.id_factura}` });
-      handleClearCart(); // Limpiar el carrito después de una venta exitosa
-      fetchProducts(); // Recargar productos para reflejar cambios de stock
+    // --- Historial de Facturas ---
+    const handleViewInvoiceDetails = (invoice) => {
+        setSelectedInvoice(invoice);
+        setShowInvoiceDetailsModal(true);
+    };
 
-    } catch (err) {
-      console.error("Error en handleProcessSale:", err);
-      setSaleMessage({ type: 'error', text: `No se pudo procesar la venta: ${err.message || 'Error desconocido'}` });
-    } finally {
-      setProcessingSale(false);
-    }
-  };
+    const handleCancelInvoice = async (invoiceId) => {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¡Esto anulará la factura y devolverá el stock de los productos!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, anularla!',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                setLoading(true);
+                setError(null);
+                try {
+                    // Llama a la acción personalizada 'anular' en el ViewSet
+                    const response = await axios.post(`${API_FACTURAS_URL}${invoiceId}/anular/`);
+                    if (response.status === 200) {
+                        Swal.fire('¡Anulada!', response.data.detail || 'La factura ha sido anulada y el stock devuelto.', 'success');
+                        fetchInitialData(); // Recargar facturas y productos
+                    }
+                } catch (err) {
+                    console.error('Error al anular la factura:', err.response ? err.response.data : err);
+                    const errorMessage = err.response && err.response.data && err.response.data.detail
+                        ? err.response.data.detail
+                        : 'Ocurrió un error al anular la factura.';
+                    setError(errorMessage);
+                    Swal.fire('Error', errorMessage, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
+    };
 
+    // --- Renderizado ---
+    return (
+        <Container className="mt-4">
+            <h2 className="mb-4 text-center">
+                <FontAwesomeIcon icon={faShoppingCart} className="me-2" />
+                Punto de Venta (POS)
+            </h2>
 
-  return (
-    <div className="pos-container">
-      {/* Sección de Mensajes Globales */}
-      {saleMessage && (
-        <div className={`global-message ${saleMessage.type}`}>
-          {saleMessage.text}
-        </div>
-      )}
+            {error && <div className="alert alert-danger text-center">{error}</div>}
 
-      {/* Sección de Selección de Productos */}
-      <div className="pos-section product-selection">
-        <h2>Productos</h2>
-        <input
-          type="text"
-          placeholder="Buscar producto por nombre o referencia..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-        {loadingProducts && <p className="loading-text">Cargando productos...</p>}
-        {productError && <p className="error-message">{productError}</p>}
-        <div className="product-list">
-          {filteredProducts.length === 0 && !loadingProducts && !productError && <p>No se encontraron productos.</p>}
-          {filteredProducts.map(product => (
-            <div key={product.referencia_producto} className="product-card">
-              <img
-                src={getProductImageUrl(product.imagen)}
-                alt={product.nombre}
-                className="product-image"
-              />
-              <div className="product-info">
-                <h3>{product.nombre}</h3>
-                <p>Ref: {product.referencia_producto}</p>
-                {/* Asegúrate que product.precio_venta ya es un número válido aquí */}
-                <p>Precio: **${product.precio_venta.toFixed(2)}**</p>
-                <p>Stock: {product.stock}</p>
-              </div>
-              <button
-                onClick={() => handleAddProductToCart(product)}
-                disabled={product.stock <= 0}
-                className="add-to-cart-button"
-              >
-                {product.stock <= 0 ? 'Sin Stock' : 'Añadir al Carrito'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sección del Carrito de Compras */}
-      <div className="pos-section cart-details">
-        <h2>Carrito de Compras</h2>
-        {cartItems.length === 0 ? (
-          <p className="empty-cart-message">El carrito está vacío. Añade productos para empezar.</p>
-        ) : (
-          <>
-            <div className="cart-item-list">
-              {cartItems.map(item => (
-                <div key={item.product.referencia_producto} className="cart-item">
-                  <img
-                    src={getProductImageUrl(item.product.imagen)}
-                    alt={item.product.nombre}
-                    className="cart-item-image"
-                  />
-                  <div className="item-info">
-                    <h3>{item.product.nombre}</h3>
-                    <p>Cant: {item.quantity}</p>
-                    {/* Asegúrate que item.product.precio_venta y item.subtotal ya son números válidos */}
-                    <p>Unitario: ${item.product.precio_venta.toFixed(2)}</p>
-                    <p>Subtotal: ${item.subtotal.toFixed(2)}</p>
-                  </div>
-                  <div className="item-quantity-controls">
-                    <button onClick={() => updateItemQuantity(item.product.referencia_producto, item.quantity - 1)}>-</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => updateItemQuantity(item.product.referencia_producto, item.quantity + 1)}>+</button>
-                    <button className="remove-button" onClick={() => removeItemFromCart(item.product.referencia_producto)}>X</button>
-                  </div>
+            {loading && (
+                <div className="text-center my-3">
+                    <Spinner animation="border" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                    </Spinner>
+                    <p className="mt-2">Cargando datos...</p>
                 </div>
-              ))}
-            </div>
-            <div className="cart-summary">
-              <h3>Total Carrito: **${calculateTotal().toFixed(2)}**</h3>
-            </div>
-          </>
-        )}
-      </div>
+            )}
 
-      {/* Sección de Controles de Venta (Cliente y Forma de Pago) */}
-      <div className="pos-section sale-controls">
-        <h2>Detalles de la Venta</h2>
-        <div className="control-group">
-          <label htmlFor="client-select">Cliente:</label>
-          <input
-            type="text"
-            placeholder="Buscar o seleccionar cliente..."
-            value={clientSearchTerm}
-            onChange={(e) => setClientSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          {loadingClients && <p className="loading-text">Cargando clientes...</p>}
-          {clientError && <p className="error-message">{clientError}</p>}
-          {/* Usamos un select para el cliente para facilitar la selección después de la búsqueda */}
-          <select
-            id="client-select"
-            value={selectedClient ? selectedClient.id : ''}
-            onChange={(e) => setSelectedClient(clients.find(c => c.id === parseInt(e.target.value)))}
-            className="select-input"
-          >
-            <option value="">Seleccionar Cliente</option>
-            {filteredClients.map(client => (
-              <option key={client.id} value={client.id}>{client.nombre} ({client.email || 'N/A'})</option>
-            ))}
-          </select>
-        </div>
+            {!loading && (
+                <Row>
+                    {/* Sección de Nueva Venta */}
+                    <Col lg={7} className="mb-4">
+                        <Card className="shadow-sm">
+                            <Card.Header className="bg-success text-white">
+                                <h5 className="mb-0">
+                                    <FontAwesomeIcon icon={faFileInvoice} className="me-2" />
+                                    Nueva Factura
+                                </h5>
+                            </Card.Header>
+                            <Card.Body>
+                                <Form>
+                                    <Row className="mb-3">
+                                        <Col md={6}>
+                                            <Form.Group controlId="selectCliente">
+                                                <Form.Label>Cliente</Form.Label>
+                                                <InputGroup>
+                                                    <InputGroup.Text><FontAwesomeIcon icon={faUser} /></InputGroup.Text>
+                                                    <Form.Select
+                                                        name="cliente"
+                                                        value={currentSale.cliente}
+                                                        onChange={handleSaleChange}
+                                                        required
+                                                    >
+                                                        <option value="">Selecciona Cliente</option>
+                                                        {clientes.map(c => (
+                                                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                                                        ))}
+                                                    </Form.Select>
+                                                </InputGroup>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group controlId="selectFormaPago">
+                                                <Form.Label>Forma de Pago</Form.Label>
+                                                <InputGroup>
+                                                    <InputGroup.Text><FontAwesomeIcon icon={faMoneyBillWave} /></InputGroup.Text>
+                                                    <Form.Select
+                                                        name="forma_pago"
+                                                        value={currentSale.forma_pago}
+                                                        onChange={handleSaleChange}
+                                                        required
+                                                    >
+                                                        <option value="">Selecciona Forma de Pago</option>
+                                                        {formasPago.map(fp => (
+                                                            <option key={fp.id} value={fp.id}>{fp.metodo}</option>
+                                                        ))}
+                                                    </Form.Select>
+                                                </InputGroup>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-        <div className="control-group">
-          <label htmlFor="payment-method-select">Forma de Pago:</label>
-          {loadingPaymentMethods && <p className="loading-text">Cargando formas de pago...</p>}
-          {paymentMethodError && <p className="error-message">{paymentMethodError}</p>}
-          <select
-            id="payment-method-select"
-            value={selectedPaymentMethod ? selectedPaymentMethod.id : ''}
-            onChange={(e) => setSelectedPaymentMethod(paymentMethods.find(pm => pm.id === parseInt(e.target.value)))}
-            className="select-input"
-          >
-            <option value="">Seleccionar Forma de Pago</option>
-            {paymentMethods.map(pm => (
-              <option key={pm.id} value={pm.id}>{pm.metodo}</option>
-            ))}
-          </select>
-        </div>
+                                    <Button
+                                        variant="info"
+                                        className="mb-3"
+                                        onClick={handleOpenProductSearchModal}
+                                    >
+                                        <FontAwesomeIcon icon={faPlus} className="me-2" />
+                                        Añadir Producto
+                                    </Button>
 
-        <div className="action-buttons">
-          <button onClick={handleClearCart} disabled={cartItems.length === 0} className="clear-cart-button">
-            Vaciar Carrito
-          </button>
-          <button
-            onClick={handleProcessSale}
-            disabled={processingSale || cartItems.length === 0 || !selectedClient || !selectedPaymentMethod}
-            className="process-sale-button"
-          >
-            {processingSale ? 'Procesando...' : `Generar Factura ($${calculateTotal().toFixed(2)})`}
-          </button>
-        </div>
-      </div>
+                                    <h5>Detalles de la Venta</h5>
+                                    {currentSale.items.length === 0 ? (
+                                        <div className="alert alert-info text-center">
+                                            No hay productos en esta factura.
+                                        </div>
+                                    ) : (
+                                        <div className="table-responsive">
+                                            <Table striped bordered hover size="sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Producto</th>
+                                                        <th>Cantidad</th>
+                                                        <th>Precio Unit.</th>
+                                                        <th>Subtotal</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {currentSale.items.map((item, index) => (
+                                                        <tr key={item.producto_id}>
+                                                            <td>{item.nombre} <br/> <small className="text-muted">({item.referencia_producto})</small></td>
+                                                            <td>
+                                                                <InputGroup size="sm">
+                                                                    <Form.Control
+                                                                        type="number"
+                                                                        min="1"
+                                                                        value={item.cantidad}
+                                                                        onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value, 10))}
+                                                                        style={{ width: '70px' }}
+                                                                    />
+                                                                </InputGroup>
+                                                            </td>
+                                                            <td>${item.precio_unitario.toFixed(2)}</td>
+                                                            <td>${(item.cantidad * item.precio_unitario).toFixed(2)}</td>
+                                                            <td className="text-center">
+                                                                <Button
+                                                                    variant="danger"
+                                                                    size="sm"
+                                                                    onClick={() => handleRemoveItem(index)}
+                                                                >
+                                                                    <FontAwesomeIcon icon={faTrash} />
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </Table>
+                                        </div>
+                                    )}
 
-      {/* Modal de Confirmación de Venta */}
-      {showSaleConfirmationModal && saleResult && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Factura Generada con Éxito</h3>
-            <p>ID de Factura: **{saleResult.id_factura}**</p>
-            {/* Asegúrate que saleResult.total es número válido */}
-            <p>Total: **${parseFloat(saleResult.total).toFixed(2)}**</p>
-            {/* Estos campos (cliente_nombre, forma_pago_nombre) se asumen que el backend los devuelve en la respuesta de la factura */}
-            <p>Cliente: {saleResult.cliente_nombre || 'N/A'}</p>
-            <p>Forma de Pago: {saleResult.forma_pago_nombre || 'N/A'}</p>
-            <button onClick={() => setShowSaleConfirmationModal(false)} className="close-modal-button">Cerrar</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                                    <h4 className="text-end mt-4">
+                                        Total: <FontAwesomeIcon icon={faDollarSign} /> {currentSale.total.toFixed(2)}
+                                    </h4>
+
+                                    <div className="d-grid mt-3">
+                                        <Button
+                                            variant="primary"
+                                            size="lg"
+                                            onClick={handleFinalizeSale}
+                                            disabled={loading || currentSale.items.length === 0 || !currentSale.cliente || !currentSale.forma_pago}
+                                        >
+                                            <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                                            Finalizar Venta
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+
+                    {/* Sección de Historial de Facturas */}
+                    <Col lg={5}>
+                        <Card className="shadow-sm">
+                            <Card.Header className="bg-secondary text-white">
+                                <h5 className="mb-0">
+                                    <FontAwesomeIcon icon={faFileInvoice} className="me-2" />
+                                    Historial de Facturas
+                                </h5>
+                            </Card.Header>
+                            <Card.Body>
+                                {facturas.length === 0 ? (
+                                    <div className="alert alert-info text-center">
+                                        No hay facturas registradas.
+                                    </div>
+                                ) : (
+                                    <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                        <Table striped bordered hover size="sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Factura #</th>
+                                                    <th>Cliente</th>
+                                                    <th>Total</th>
+                                                    <th>Estado</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {facturas.map(factura => (
+                                                    <tr key={factura.id}>
+                                                        <td>{factura.id_factura}</td>
+                                                        <td>{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
+                                                        <td>${parseFloat(factura.total || 0).toFixed(2)}</td>
+                                                        <td>
+                                                            <span className={`badge ${factura.estado === 'Completada' ? 'bg-success' : 'bg-danger'}`}>
+                                                                {factura.estado}
+                                                            </span>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <Button
+                                                                variant="primary"
+                                                                size="sm"
+                                                                className="me-1"
+                                                                onClick={() => handleViewInvoiceDetails(factura)}
+                                                            >
+                                                                <FontAwesomeIcon icon={faSearch} />
+                                                            </Button>
+                                                            {factura.estado !== 'Anulada' && (
+                                                                <Button
+                                                                    variant="danger"
+                                                                    size="sm"
+                                                                    onClick={() => handleCancelInvoice(factura.id)}
+                                                                >
+                                                                    <FontAwesomeIcon icon={faMinusCircle} />
+                                                                </Button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+
+            {/* Modal de Búsqueda de Producto */}
+            <Modal show={showProductSearchModal} onHide={() => setShowProductSearchModal(false)} centered size="lg">
+                <Modal.Header closeButton className="bg-info text-white">
+                    <Modal.Title>
+                        <FontAwesomeIcon icon={faSearch} className="me-2" />
+                        Buscar y Añadir Producto
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <InputGroup className="mb-3">
+                        <InputGroup.Text><FontAwesomeIcon icon={faSearch} /></InputGroup.Text>
+                        <Form.Control
+                            type="text"
+                            placeholder="Buscar por nombre o referencia..."
+                            value={searchTerm}
+                            onChange={handleSearchTermChange}
+                        />
+                    </InputGroup>
+                    <ListGroup>
+                        {searchResults.length === 0 && searchTerm ? (
+                            <ListGroup.Item className="text-center text-muted">
+                                No se encontraron productos.
+                            </ListGroup.Item>
+                        ) : (
+                            searchResults.map(product => (
+                                <ListGroup.Item
+                                    key={product.referencia_producto}
+                                    className="d-flex justify-content-between align-items-center"
+                                >
+                                    <div>
+                                        <strong>{product.nombre}</strong> ({product.referencia_producto})
+                                        <br />
+                                        <small className="text-muted">Stock: {product.stock} | Precio: ${parseFloat(product.precio_sugerido_venta).toFixed(2)}</small>
+                                    </div>
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        onClick={() => handleAddProductToSale(product)}
+                                        disabled={product.stock <= 0}
+                                    >
+                                        <FontAwesomeIcon icon={faPlus} className="me-1" />
+                                        Añadir
+                                    </Button>
+                                </ListGroup.Item>
+                            ))
+                        )}
+                    </ListGroup>
+                </Modal.Body>
+            </Modal>
+
+            {/* Modal de Detalles de Factura */}
+            <Modal show={showInvoiceDetailsModal} onHide={() => setShowInvoiceDetailsModal(false)} centered size="lg">
+                <Modal.Header closeButton className="bg-primary text-white">
+                    <Modal.Title>
+                        <FontAwesomeIcon icon={faFileInvoice} className="me-2" />
+                        Detalles de Factura #{selectedInvoice?.id_factura}
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {selectedInvoice && (
+                        <>
+                            <Row className="mb-3">
+                                <Col>
+                                    <strong>Cliente:</strong> {selectedInvoice.cliente?.nombre || 'N/A'}
+                                </Col>
+                                <Col>
+                                    <strong>Fecha:</strong> {new Date(selectedInvoice.fecha).toLocaleString()}
+                                </Col>
+                            </Row>
+                            <Row className="mb-3">
+                                <Col>
+                                    <strong>Forma de Pago:</strong> {selectedInvoice.forma_pago?.metodo || 'N/A'}
+                                </Col>
+                                <Col>
+                                    <strong>Usuario:</strong> {selectedInvoice.usuario?.username || 'N/A'}
+                                </Col>
+                            </Row>
+                            <hr />
+                            <h5>Productos</h5>
+                            {selectedInvoice.detalle_ventas && selectedInvoice.detalle_ventas.length > 0 ? (
+                                <Table striped bordered hover size="sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio Unit.</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedInvoice.detalle_ventas.map(detalle => (
+                                            <tr key={detalle.id}>
+                                                <td>{detalle.producto?.nombre || 'N/A'} ({detalle.producto?.referencia_producto || 'N/A'})</td>
+                                                <td>{detalle.cantidad}</td>
+                                                <td>${parseFloat(detalle.precio_unitario || 0).toFixed(2)}</td>
+                                                <td>${parseFloat(detalle.subtotal || 0).toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            ) : (
+                                <p>No hay detalles de productos para esta factura.</p>
+                            )}
+                            <h4 className="text-end mt-3">
+                                Total de Factura: <FontAwesomeIcon icon={faDollarSign} />{' '} {/* Changed to faDollarSign for COP */}
+                                {parseFloat(selectedInvoice.total || 0).toFixed(2)} {/* <--- Apply parseFloat() here! */}
+                            </h4>
+                            <p className="text-end">
+                                <span className={`badge ${selectedInvoice.estado === 'Completada' ? 'bg-success' : 'bg-danger'}`}>
+                                    Estado: {selectedInvoice.estado}
+                                </span>
+                            </p>
+                        </>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowInvoiceDetailsModal(false)}>
+                        <FontAwesomeIcon icon={faTimes} className="me-2" />
+                        Cerrar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </Container>
+    );
 };
 
 export default POSPage;
