@@ -24,73 +24,64 @@ class ClienteViewSet(viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
 
 class FacturaViewSet(viewsets.ModelViewSet):
-    queryset = Factura.objects.all().order_by('-fecha')
+    queryset = Factura.objects.all().order_by('-fecha') # Ordenar por fecha descendente
     serializer_class = FacturaSerializer
-    pagination_class = None # Para este ejemplo, no paginamos
 
-    # Acción personalizada para "anular" una factura y devolver stock
-    @action(detail=True, methods=['post'])
-    def anular(self, request, pk=None):
-        factura = self.get_object()
+    # Acción personalizada para completar una factura
+    @action(detail=True, methods=['post'], url_path='completar')
+    def completar_factura(self, request, pk=None):
+        try:
+            factura = self.get_object() # Obtiene la factura por su PK (pk)
+        except Factura.DoesNotExist:
+            return Response({'error': 'Factura no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if factura.estado == 'Pendiente':
+            factura.estado = 'Completada'
+            factura.save()
+            return Response({'message': 'Factura marcada como Completada.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'La factura no está en estado Pendiente o ya está Completada.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Puedes mantener o modificar tu método create si tenías lógica específica
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    # Acción para anular una factura y devolver el stock
+    @action(detail=True, methods=['post'], url_path='anular')
+    def anular_factura(self, request, pk=None):
+        try:
+            factura = self.get_object()
+        except Factura.DoesNotExist:
+            return Response({'error': 'Factura no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Verificar si la factura ya está anulada
         if factura.estado == 'Anulada':
-            return Response({'detail': 'La factura ya está anulada.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'La factura ya está Anulada y no se puede anular de nuevo.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():
-            try:
-                # 1. Cambiar el estado de la factura a 'Anulada'
-                factura.estado = 'Anulada'
-                factura.save()
+        # Aquí es donde añadimos la lógica para devolver el stock
+        # Solo devolvemos stock si la factura no está ya en un estado final de no-stock-afectado (como Anulada)
+        # o si la lógica de tu negocio dice que solo se devuelve stock de facturas 'Completadas'.
+        # Basado en tu comentario, si se completa y luego se anula, debería devolver stock.
+        # Si se anula desde 'Pendiente', probablemente el stock ya se restó en la creación del DetalleVenta.
+        
+        # Iterar sobre todos los detalles de venta asociados a esta factura
+        for detalle in factura.detalle_ventas.all(): # Accede a los detalles a través de la relación inversa
+            producto = detalle.producto # Obtiene el objeto Producto
+            cantidad_vendida = detalle.cantidad # Cantidad de este producto en el detalle
 
-                # 2. Devolver stock de cada producto en los detalles de venta
-                for detalle in factura.detalle_ventas.all():
-                    producto = detalle.producto
-                    # Incrementa el stock del producto
-                    producto.stock += detalle.cantidad
-                    producto.save()
-                    print(f"Stock devuelto para {producto.nombre} (Ref: {producto.referencia_producto}). Nuevo stock: {producto.stock}")
+            # Devolver la cantidad al stock del producto
+            producto.stock += cantidad_vendida
+            producto.save() # Guarda el producto con el stock actualizado
+        
+        # Una vez que el stock ha sido devuelto, cambia el estado de la factura a Anulada
+        factura.estado = 'Anulada'
+        factura.save()
 
-                return Response({'detail': 'Factura anulada y stock devuelto exitosamente.'}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({'detail': f'Error al anular la factura: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # Sobreescribir destroy para evitar que se eliminen facturas directamente
-    # En un entorno real, prefieres "anular" que eliminar para mantener un historial.
-    # Si de verdad quieres eliminar, deberías replicar la lógica de devolución de stock aquí.
-    def destroy(self, request, *args, **kwargs):
-        return Response({'detail': 'La eliminación directa de facturas no está permitida. Use la acción de anular.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-class FacturaViewSet(viewsets.ModelViewSet):
-    queryset = Factura.objects.all().order_by('-fecha')
-    serializer_class = FacturaSerializer
-    pagination_class = None
-
-    @action(detail=True, methods=['post'])
-    def anular(self, request, pk=None):
-        factura = self.get_object()
-        if factura.estado == 'Anulada':
-            return Response({'detail': 'La factura ya está anulada.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        with transaction.atomic():
-            try:
-                factura.estado = 'Anulada'
-                factura.save()
-
-                for detalle in factura.detalle_ventas.all():
-                    producto = detalle.producto
-                    # Incrementa el stock del producto
-                    producto.stock += detalle.cantidad
-                    producto.save()
-                    print(f"Stock devuelto para {producto.nombre} (Ref: {producto.referencia_producto}). Nuevo stock: {producto.stock}")
-
-                return Response({'detail': 'Factura anulada y stock devuelto exitosamente.'}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({'detail': f'Error al anular la factura: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def destroy(self, request, *args, **kwargs):
-        # Implementa la lógica de devolución de stock si permites la eliminación directa
-        # O si no, devuelve el error como lo tenías
-        return Response({'detail': 'La eliminación directa de facturas no está permitida. Use la acción de anular.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'message': 'Factura marcada como Anulada y stock devuelto exitosamente.'}, status=status.HTTP_200_OK)
 
 
 class DetalleVentaViewSet(viewsets.ModelViewSet):

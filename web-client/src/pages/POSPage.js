@@ -8,7 +8,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus, faTrash, faShoppingCart, faFileInvoice, faSearch, faSave, faTimes,
-    faUser, faMoneyBillWave, faBox, faCheckCircle, faEuroSign, faEdit, faMinusCircle, faDollarSign
+    faUser, faMoneyBillWave, faBox, faCheckCircle, faEuroSign, faEdit, faMinusCircle, faDollarSign,
+    faEye, faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -53,6 +54,18 @@ const POSPage = () => {
 
     // Asume un usuario por defecto para las facturas (podrías cambiar esto con autenticación)
     const [defaultUserId, setDefaultUserId] = useState(null);
+
+    // --- NUEVA FUNCIÓN: Carga de Facturas (esta es la que faltaba por separado) ---
+    // Agrega esta función aquí, justo después de tus useState y antes de fetchInitialData
+    const fetchFacturas = useCallback(async () => {
+        try {
+            const response = await axios.get(API_FACTURAS_URL);
+            setFacturas(response.data);
+        } catch (err) {
+            console.error('Error fetching invoices:', err.response ? err.response.data : err.message);
+            Swal.fire('Error', 'No se pudieron cargar el historial de facturas.', 'error');
+        }
+    }, []);
 
     // --- Carga Inicial de Datos ---
     const fetchInitialData = useCallback(async () => {
@@ -332,6 +345,39 @@ const POSPage = () => {
         });
     };
 
+    const handleCompleteInvoice = async (invoiceId) => {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: '¡Esta acción marcará la factura como Completada y no se podrá revertir fácilmente!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745', // Verde para "Completar"
+        cancelButtonColor: '#dc3545', // Rojo para "Cancelar"
+        confirmButtonText: 'Sí, Completar factura',
+        cancelButtonText: 'Cancelar'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // Llama al nuevo endpoint del backend
+                await axios.post(`${API_FACTURAS_URL}${invoiceId}/completar/`);
+                Swal.fire(
+                    '¡Completada!',
+                    'La factura ha sido marcada como Completada.',
+                    'success'
+                );
+                fetchFacturas(); // Vuelve a cargar las facturas para reflejar el cambio de estado
+            } catch (error) {
+                console.error('Error al completar la factura:', error);
+                Swal.fire(
+                    'Error',
+                    `No se pudo completar la factura: ${error.response?.data?.error || error.message}`,
+                    'error'
+                );
+            }
+        }
+    });
+};
+
     // --- Renderizado ---
     return (
         <Container className="mt-4">
@@ -510,39 +556,58 @@ const POSPage = () => {
                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                {facturas.map(factura => (
-                                                    <tr key={factura.id}>
-                                                        <td>{factura.id_factura}</td>
-                                                        <td>{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
-                                                        <td>${parseFloat(factura.total || 0).toFixed(2)}</td>
-                                                        <td>
-                                                            <span className={`badge ${factura.estado === 'Completada' ? 'bg-success' : 'bg-danger'}`}>
-                                                                {factura.estado}
-                                                            </span>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <Button
-                                                                variant="primary"
-                                                                size="sm"
-                                                                className="me-1"
-                                                                onClick={() => handleViewInvoiceDetails(factura)}
-                                                            >
-                                                                <FontAwesomeIcon icon={faSearch} />
-                                                            </Button>
-                                                            {factura.estado !== 'Anulada' && (
-                                                                <Button
-                                                                    variant="danger"
-                                                                    size="sm"
-                                                                    onClick={() => handleCancelInvoice(factura.id)}
-                                                                >
-                                                                    <FontAwesomeIcon icon={faMinusCircle} />
-                                                                </Button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
+<tbody>
+    {facturas.map(factura => (
+        <tr key={factura.id}>
+            <td>{factura.id_factura}</td>
+            <td>{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
+            {/* Added FontAwesomeIcon for consistency with other dollar signs */}
+            <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(factura.total || 0).toFixed(2)}</td>
+            <td>
+                <span className={`badge ${factura.estado === 'Completada' ? 'bg-success' : 'bg-danger'}`}>
+                    {factura.estado}
+                </span>
+            </td>
+            <td className="text-center">
+                {/* Button to View Invoice Details */}
+                <Button
+                    variant="primary"
+                    size="sm"
+                    className="me-1" // Added margin-right for spacing
+                    onClick={() => handleViewInvoiceDetails(factura)}
+                >
+                    <FontAwesomeIcon icon={faEye} />
+                </Button>
+
+                {/* --- NEW BUTTON: Complete Invoice --- */}
+                {/* This button only appears if the invoice state is 'Pendiente' */}
+                {factura.estado === 'Pendiente' && (
+                    <Button
+                        variant="success" // Green color for "Complete" action
+                        size="sm"
+                        className="me-1" // Added margin-right for spacing
+                        onClick={() => handleCompleteInvoice(factura.id)} // Call the new handler
+                    >
+                        <FontAwesomeIcon icon={faCheckCircle} /> {/* Checkmark icon */}
+                    </Button>
+                )}
+                {/* --- END NEW BUTTON --- */}
+
+                {/* Button to Cancel/Annul Invoice (only if not already 'Anulada') */}
+                {factura.estado !== 'Anulada' && (
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        // Removed className="ms-2" if you prefer `me-1` on all buttons for consistent spacing
+                        onClick={() => handleCancelInvoice(factura.id)}
+                    >
+                        <FontAwesomeIcon icon={faTimesCircle} />
+                    </Button>
+                )}
+            </td>
+        </tr>
+    ))}
+</tbody>
                                         </Table>
                                     </div>
                                 )}
