@@ -10,7 +10,7 @@ from .models import Cliente, Factura, DetalleVenta
 from .serializers import ClienteSerializer, FacturaSerializer, DetalleVentaSerializer
 
 class ClienteViewSet(viewsets.ModelViewSet):
-    queryset = Cliente.objects.all()
+    queryset = Cliente.objects.all().order_by('nombre')
     serializer_class = ClienteSerializer
 
 class FacturaViewSet(viewsets.ModelViewSet):

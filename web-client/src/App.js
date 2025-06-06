@@ -12,6 +12,9 @@ import FormaPagoPage from './pages/FormasPagoPage';
 import ClientePage from './pages/ClientesPage';
 import EditarEliminarProductosPage from './pages/EditarEliminarProductosPage';
 import ProductosPage from './pages/ProductosPage';
+import RolesPage from './pages/RolesPage';
+import PermisosPage from './pages/PermisosPage';
+import UsuariosPage from './pages/UsuariosPage';
 
 function App() {
   return (
@@ -27,6 +30,10 @@ function App() {
         <Route path="/clientes" element={<ClientePage />} />
         <Route path="/editar/eliminarclientes" element={<EditarEliminarProductosPage />} />
         <Route path="/ver/productos" element={<ProductosPage />} />
+        <Route path="/roles" element={<RolesPage />} />
+        <Route path="/permisos" element={<PermisosPage />} />
+        <Route path="/usuarios" element={<UsuariosPage />} />
+        
         {/* Agrega otras rutas aquí */}
       </Routes>
     </Router>

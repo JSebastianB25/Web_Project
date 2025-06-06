@@ -26,11 +26,12 @@ const Navbar = () => {
               <LinkContainer to="/ver/productos">
                 <NavDropdown.Item>Ver Todos</NavDropdown.Item>
               </LinkContainer>
+              <NavDropdown.Divider />
               <LinkContainer to="/productos/agregar">
                 <NavDropdown.Item>Agregar Nuevo</NavDropdown.Item>
               </LinkContainer>
               {/* ¡Mueve el Divider FUERA de cualquier LinkContainer! */}
-              <NavDropdown.Divider />
+              
               <LinkContainer to="/editar/eliminarclientes">
                 <NavDropdown.Item>Editar o Eliminar</NavDropdown.Item>
               </LinkContainer>
@@ -68,6 +69,19 @@ const Navbar = () => {
                 <NavDropdown.Item>Formas de Pago</NavDropdown.Item>
               </LinkContainer>
             </NavDropdown>
+
+            <NavDropdown title="Administrar Accesos" id="nav-dropdown-accesos">
+              <LinkContainer to="/roles">
+                <NavDropdown.Item>Roles</NavDropdown.Item>
+              </LinkContainer>
+              <NavDropdown.Divider />
+              <LinkContainer to="/usuarios">
+                <NavDropdown.Item>Usuarios</NavDropdown.Item>
+              </LinkContainer>
+              <LinkContainer to="/permisos">
+                <NavDropdown.Item>Permisos</NavDropdown.Item>
+              </LinkContainer>
+              </NavDropdown>
 
           </Nav>
         </BSNavbar.Collapse>
