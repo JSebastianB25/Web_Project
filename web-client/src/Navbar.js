@@ -37,13 +37,10 @@ const Navbar = () => {
               </LinkContainer>
             </NavDropdown>
 
-            {/* Dropdown: Clientes */}
-            <NavDropdown title="Clientes" id="nav-dropdown-clientes">
-              <LinkContainer to="/clientes">
-                <NavDropdown.Item>Ver Todos</NavDropdown.Item>
-              </LinkContainer>
-              <LinkContainer to="/clientes/agregar">
-                <NavDropdown.Item>Agregar Nuevo</NavDropdown.Item>
+            {/* Dropdown: DashBoards */}
+            <NavDropdown title="Reportes" id="nav-dropdown-reportes">
+              <LinkContainer to="/reportes">
+                <NavDropdown.Item>Ver Reportes</NavDropdown.Item>
               </LinkContainer>
             </NavDropdown>
 
@@ -85,6 +82,9 @@ const Navbar = () => {
             
             {/* Punto de Venta */}
             <NavDropdown title="Ventas" id="nav-dropdown-ventas">
+              <LinkContainer to="/clientes">
+                <NavDropdown.Item>Crear Cliente</NavDropdown.Item>
+              </LinkContainer>
               <LinkContainer to="/pos">
                 <NavDropdown.Item>Generar Venta</NavDropdown.Item>
               </LinkContainer>

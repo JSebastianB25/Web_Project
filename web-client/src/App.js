@@ -17,6 +17,7 @@ import PermisosPage from './pages/PermisosPage';
 import UsuariosPage from './pages/UsuariosPage';
 import POSPage from './pages/POSPage';
 import FacturasPage from './pages/FacturasPage';
+import ReportesPage from './pages/ReportsPage';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path='/pos' element={<POSPage />} />
         <Route path='/facturas' element={<FacturasPage />} />
+        <Route path='/reportes' element={<ReportesPage />} />
         
         {/* Agrega otras rutas aquí */}
       </Routes>
