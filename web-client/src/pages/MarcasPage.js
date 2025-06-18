@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    Modal, InputGroup, Card, Image // <-- Importa Image para la previsualización y mostrar en la tabla
+    Modal, InputGroup, Card, Image, Alert // <-- Añadido Alert
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faImage } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faImage, faTags } from '@fortawesome/free-solid-svg-icons'; // <-- Añadido faTags para el título de la página
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// Importa tus estilos personalizados para esta página
+import '../styles/MarcasPage.css'; // <-- Nuevo archivo CSS
 
 // Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -127,11 +130,11 @@ const MarcasPage = () => {
     const handleDeleteClick = async (marcaId) => {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
+            text: "¡No podrás revertir esto! Si la marca tiene productos asociados, no podrá ser eliminada.", // <-- MENSAJE CLARO
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#d33', // <-- CAMBIADO: Rojo para eliminar
+            cancelButtonColor: '#6c757d', // <-- CAMBIADO: Gris para cancelar
             confirmButtonText: 'Sí, eliminarla!',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
@@ -146,9 +149,25 @@ const MarcasPage = () => {
                     }
                 } catch (err) {
                     console.error('Error al eliminar marca:', err.response ? err.response.data : err);
-                    const errorMessage = err.response && err.response.data
-                        ? Object.values(err.response.data).flat().join(' ')
-                        : 'Ocurrió un error al eliminar la marca.';
+                    let errorMessage = 'Ocurrió un error al eliminar la marca.';
+                    // <-- AÑADIDO: Manejo de error específico para restricción de clave foránea
+                    if (err.response && err.response.status === 400) { // Bad Request, puede contener mensaje específico
+                        const errorData = err.response.data;
+                        if (errorData.detail && (errorData.detail.includes('Cannot delete') || errorData.detail.includes('foreign key constraint'))) {
+                            errorMessage = 'No es posible eliminar la marca porque tiene productos asociados.';
+                        } else if (Object.values(errorData).flat().some(msg =>
+                            String(msg).includes('productos asociados') || String(msg).includes('referenced by other objects') || String(msg).includes('constraint failed')
+                        )) {
+                             errorMessage = 'No es posible eliminar la marca porque tiene productos asociados.';
+                        } else {
+                            errorMessage = Object.values(errorData).flat().join(' ');
+                        }
+                    } else if (err.response && err.response.status === 409) { // Posible conflicto
+                        errorMessage = 'No es posible eliminar la marca porque tiene productos asociados.';
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Error de conexión. Asegúrate de que el servidor esté funcionando.';
+                    }
+                    // <-- FIN AÑADIDO
                     setError(errorMessage);
                     Swal.fire('Error', errorMessage, 'error');
                 } finally {
@@ -158,35 +177,46 @@ const MarcasPage = () => {
         });
     };
 
-    // Función auxiliar para previsualizar la imagen
+    // Función auxiliar para previsualizar la imagen (ACTUALIZADA)
     const renderImagePreview = (imageUrl, altText) => {
         if (!imageUrl) return null;
+        // Validación básica de URL: asegúrate de que empieza con http/https
         const isValidUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
-        if (!isValidUrl) return <p className="text-danger mt-2">URL de imagen inválida.</p>;
 
         return (
-            <div className="mt-2 text-center">
-                <p className="mb-1 text-muted small">Previsualización:</p>
+            <div className="mt-2 text-center image-preview-container"> {/* <-- Añadido clase */}
+                <p className="mb-1 text-muted small" style={{color: '#000000'}}>Previsualización:</p> {/* <-- Color negro */}
                 <Image
                     src={imageUrl}
                     alt={altText || "Previsualización"}
                     fluid
-                    style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain', border: '1px solid #ddd', padding: '5px' }}
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/100x50?text=Imagen+No+Cargada'; }}
+                    // Estilos inline reemplazados por clases CSS en MarcasPage.css
+                    className="image-preview" // <-- Nueva clase
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x50/e0e0e0/555555?text=Img+No+Disp.'; }} // <-- Fallback mejorado
                 />
             </div>
         );
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Gestión de Marcas</h2>
+        <Container
+            fluid // <-- Añadido: Para que ocupe todo el ancho
+            className="marcas-page p-4" // <-- Añadido: Clase para estilos base
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+                backgroundColor: '#ffffff', // Fondo blanco para la página
+                color: '#000000' // Texto negro por defecto
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faTags} className="me-3" /> Gestión de Marcas
+            </h2>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && <Alert variant="danger" className="text-center marcas-alert-error">{error}</Alert>} {/* <-- Añadido: Clase para estilo de alerta */}
 
             {/* Formulario para Agregar Nueva Marca */}
-            <Card className="mb-4 shadow-sm">
-                <Card.Header className="bg-primary text-white">
+            <Card className="mb-4 shadow-sm marcas-card"> {/* <-- Añadido: Clase para estilo de tarjeta */}
+                <Card.Header className="marcas-card-header-add"> {/* <-- Añadido: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faPlus} className="me-2" />
                         Agregar Nueva Marca
@@ -197,7 +227,7 @@ const MarcasPage = () => {
                         <Row className="g-3">
                             <Col md={6}>
                                 <Form.Group controlId="newMarcaNombre">
-                                    <Form.Label>Nombre de la Marca</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre de la Marca</Form.Label> {/* <-- Añadido: Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="nombre"
@@ -205,27 +235,29 @@ const MarcasPage = () => {
                                         onChange={handleNewMarcaChange}
                                         placeholder="Ej: Samsung, Apple, Oster"
                                         required
+                                        className="form-control-light" // <-- Añadido: Clase de estilo
                                     />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newMarcaImagen">
-                                    <Form.Label>URL de la Imagen (Logo)</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>URL de la Imagen (Logo)</Form.Label> {/* <-- Añadido: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faImage} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faImage} /></InputGroup.Text> {/* <-- Añadido: Clase de estilo */}
                                         <Form.Control
                                             type="url" // Usa type="url" para validación básica del navegador
                                             name="imagen"
                                             value={newMarcaData.imagen}
                                             onChange={handleNewMarcaChange}
                                             placeholder="Ej: https://ejemplo.com/logo.png"
+                                            className="form-control-light" // <-- Añadido: Clase de estilo
                                         />
                                     </InputGroup>
                                     {renderImagePreview(newMarcaData.imagen, newMarcaData.nombre)}
                                 </Form.Group>
                             </Col>
                             <Col xs={12} className="text-end">
-                                <Button variant="success" type="submit" disabled={loading}>
+                                <Button variant="success" type="submit" disabled={loading} className="btn-add-submit"> {/* <-- Añadido: Clase de estilo */}
                                     {loading ? (
                                         <>
                                             <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
@@ -245,8 +277,8 @@ const MarcasPage = () => {
             </Card>
 
             {/* Lista de Marcas */}
-            <Card className="shadow-sm">
-                <Card.Header className="bg-info text-white">
+            <Card className="shadow-sm marcas-card"> {/* <-- Añadido: Clase para estilo de tarjeta */}
+                <Card.Header className="marcas-card-header-list"> {/* <-- Añadido: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
                         Marcas Existentes
@@ -255,20 +287,20 @@ const MarcasPage = () => {
                 <Card.Body>
                     {loading && (
                         <div className="text-center my-3">
-                            <Spinner animation="border" role="status">
+                            <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* <-- Color del spinner */}
                                 <span className="visually-hidden">Cargando marcas...</span>
                             </Spinner>
-                            <p className="mt-2">Cargando marcas...</p>
+                            <p className="mt-2" style={{ color: '#000000'}}>Cargando marcas...</p> {/* <-- Color del texto */}
                         </div>
                     )}
                     {!loading && marcas.length === 0 && (
-                        <div className="alert alert-info text-center mt-3">
+                        <Alert variant="info" className="text-center mt-3 marcas-alert-info"> {/* <-- Añadido: Clase para estilo de alerta */}
                             No hay marcas registradas aún.
-                        </div>
+                        </Alert>
                     )}
                     {!loading && marcas.length > 0 && (
-                        <div className="table-responsive">
-                            <Table striped bordered hover className="mt-3">
+                        <div className="table-responsive marcas-table-wrapper"> {/* <-- Añadido: Clase para estilo de tabla */}
+                            <Table striped hover className="mt-3 marcas-table-light"> {/* <-- Añadido: Clase para estilo de tabla */}
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -287,19 +319,19 @@ const MarcasPage = () => {
                                                     <Image
                                                         src={marca.imagen}
                                                         alt={marca.nombre}
-                                                        style={{ height: '50px', width: 'auto', objectFit: 'contain' }}
-                                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/50x25?text=No+Img'; }}
+                                                        className="marca-table-img" // <-- Nueva clase
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/50x25/e0e0e0/555555?text=No+Img'; }} // <-- Fallback mejorado
                                                     />
                                                 ) : (
-                                                    <span className="text-muted small">No imagen</span>
+                                                    <span className="text-muted small" style={{color: '#000000'}}>No imagen</span>
                                                 )}
                                             </td>
                                             <td>{marca.nombre}</td>
-                                            <td className="text-center">
+                                            <td className="text-center d-flex justify-content-center gap-2"> {/* <-- Añadido: Usar gap-2 para espacio */}
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="me-2"
+                                                    className="btn-action-edit" // <-- Añadido: Clase de estilo
                                                     onClick={() => handleEditClick(marca)}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} /> Editar
@@ -307,6 +339,7 @@ const MarcasPage = () => {
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
+                                                    className="btn-action-delete" // <-- Añadido: Clase de estilo
                                                     onClick={() => handleDeleteClick(marca.id)}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} /> Eliminar
@@ -323,36 +356,38 @@ const MarcasPage = () => {
 
             {/* Modal de Edición de Marca */}
             <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-                <Modal.Header closeButton className="bg-warning text-white">
-                    <Modal.Title>
+                <Modal.Header closeButton className="modal-header-light"> {/* <-- Añadido: Clase de estilo */}
+                    <Modal.Title className="modal-title-light"> {/* <-- Añadido: Clase de estilo */}
                         <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Editar Marca
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="modal-body-light"> {/* <-- Añadido: Clase de estilo */}
                         {currentMarca && (
                             <>
                                 <Form.Group className="mb-3" controlId="editMarcaNombre">
-                                    <Form.Label>Nombre de la Marca</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre de la Marca</Form.Label> {/* <-- Añadido: Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="nombre"
                                         value={editFormData.nombre}
                                         onChange={handleEditFormChange}
                                         required
+                                        className="form-control-light" // <-- Añadido: Clase de estilo
                                     />
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editMarcaImagen">
-                                    <Form.Label>URL de la Imagen (Logo)</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>URL de la Imagen (Logo)</Form.Label> {/* <-- Añadido: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faImage} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faImage} /></InputGroup.Text> {/* <-- Añadido: Clase de estilo */}
                                         <Form.Control
                                             type="url"
                                             name="imagen"
                                             value={editFormData.imagen}
                                             onChange={handleEditFormChange}
                                             placeholder="Ej: https://ejemplo.com/logo.png"
+                                            className="form-control-light" // <-- Añadido: Clase de estilo
                                         />
                                     </InputGroup>
                                     {renderImagePreview(editFormData.imagen, editFormData.nombre)}
@@ -360,12 +395,12 @@ const MarcasPage = () => {
                             </>
                         )}
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                    <Modal.Footer className="modal-footer-light"> {/* <-- Añadido: Clase de estilo */}
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)} className="btn-close-modal"> {/* <-- Añadido: Clase de estilo */}
                             <FontAwesomeIcon icon={faTimes} className="me-2" />
                             Cancelar
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading} className="btn-save-modal"> {/* <-- Añadido: Clase de estilo */}
                             {loading ? (
                                 <>
                                     <FontAwesomeIcon icon={faSpinner} spin className="me-2" />

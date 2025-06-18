@@ -1,0 +1,154 @@
+/* Estilos para InicioPage.js */
+
+/* --- Contenedor Principal de la Página --- */
+.inicio-page {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    background-color: #ffffff; /* Fondo blanco global */
+    color: #000000; /* Texto principal en negro */
+}
+
+/* --- Tarjetas de Módulo (ModuleCard) --- */
+.module-card {
+    background-color: #ffffff !important; /* Fondo blanco para las tarjetas de módulo */
+    border: 1px solid #e0e0e0 !important; /* Borde gris muy suave */
+    border-radius: 12px; /* Bordes redondeados */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    height: 100%; /* Para que todas las tarjetas tengan la misma altura */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px; /* Padding interno */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.module-card:hover {
+    transform: translateY(-5px); /* Pequeño levantamiento al pasar el mouse */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+}
+
+.module-icon {
+    color: #00b45c; /* Color verde para los iconos principales */
+    margin-bottom: 15px;
+}
+
+.module-title {
+    color: #000000 !important; /* Título del módulo en negro */
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 1.3rem; /* Tamaño de fuente ligeramente más pequeño para el título */
+}
+
+.module-description {
+    color: #6c757d; /* Descripción en gris más claro */
+    font-size: 0.95rem; /* Tamaño de fuente ligeramente más pequeño para la descripción */
+    text-align: center;
+    flex-grow: 1; /* Para que la descripción ocupe el espacio disponible y empuje el botón hacia abajo */
+    margin-bottom: 20px;
+}
+
+/* --- Botones de Acceso a Módulo --- */
+.module-button {
+    font-weight: bold;
+    padding: 10px 20px; /* Tamaño de botón más pequeño (md) */
+    border-radius: 50rem; /* Forma de píldora */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    width: 100%; /* Ocupa todo el ancho disponible en la tarjeta */
+    max-width: 150px; /* Limita el ancho para que no sea demasiado grande */
+}
+
+/* Estilo para el botón de acción principal (ej: POS, Agregar Producto) */
+.btn-main-action {
+    background-color: #00b45c !important; /* Verde */
+    border-color: #00b45c !important;
+    color: #ffffff !important;
+}
+.btn-main-action:hover {
+    background-color: #008a4d !important;
+    border-color: #008a4d !important;
+    box-shadow: 0 4px 8px rgba(0, 180, 92, 0.3);
+}
+
+/* Estilo para los botones de información/gestión */
+.btn-info-action {
+    background-color: #3498DB !important; /* Azul más neutro */
+    border-color: #3498DB !important;
+    color: #ffffff !important;
+}
+.btn-info-action:hover {
+    background-color: #217DBB !important;
+    border-color: #217DBB !important;
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* --- Tarjeta "Sin Acceso a Módulos" --- */
+.module-card-no-access {
+    border-color: #00b45c !important; /* Borde verde */
+    box-shadow: 0 4px 15px rgba(0, 180, 92, 0.2); /* Sombra verde */
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+.module-card-no-access .module-icon { /* Icono dentro de la tarjeta de sin acceso */
+    color: #00b45c !important;
+}
+.module-card-no-access .module-title {
+    color: #00b45c !important; /* Título verde */
+}
+.module-card-no-access .card-text {
+    color: #333333 !important; /* Texto en gris oscuro para legibilidad */
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) { /* Para tablets */
+    .module-card {
+        padding: 12px;
+    }
+    .module-title {
+        font-size: 1.2rem;
+    }
+    .module-description {
+        font-size: 0.9rem;
+    }
+    .module-button {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) { /* Para móviles */
+    .inicio-page {
+        padding: 15px;
+    }
+    .module-card {
+        margin-bottom: 15px;
+    }
+    .module-title {
+        font-size: 1.1rem;
+    }
+    .module-description {
+        font-size: 0.85rem;
+    }
+    .module-button {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        max-width: 120px; /* Reducir aún más el ancho en móviles */
+    }
+}
+
+@media (max-width: 576px) { /* Para móviles pequeños */
+    .module-card {
+        padding: 10px;
+    }
+    .module-title {
+        font-size: 1rem;
+    }
+    .module-description {
+        font-size: 0.8rem;
+    }
+    .module-button {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+}

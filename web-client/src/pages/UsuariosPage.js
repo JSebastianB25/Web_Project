@@ -3,67 +3,70 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    Modal, InputGroup, Card
+    Modal, InputGroup, Card, Alert // Added: Alert for consistent error messages
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus, faEdit, faTrash, faSpinner, faInfoCircle,
-    faSave, faTimes, faUser, faLock, faEnvelope, faUserTag
+    faSave, faTimes, faUser, faLock, faEnvelope, faUserTag, faUsersCog // Added: faUsersCog for page title
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-// Define tus URLs de API
+// Import custom styles for this page
+import '../styles/UsuariosPage.css'; // New CSS file
+
+// Define your API URLs
 const API_BASE_URL = 'http://localhost:8000/api';
-const API_USUARIOS_URL = `${API_BASE_URL}/usuarios/`; // Ajusta esta URL si es diferente
-const API_ROLES_URL = `${API_BASE_URL}/roles/`;     // URL para obtener la lista de roles
+const API_USUARIOS_URL = `${API_BASE_URL}/usuarios/`; // Adjust this URL if different
+const API_ROLES_URL = `${API_BASE_URL}/roles/`;     // URL to get the list of roles
 
 const UsuariosPage = () => {
     const [usuarios, setUsuarios] = useState([]);
-    const [roles, setRoles] = useState([]); // Estado para almacenar los roles
+    const [roles, setRoles] = useState([]); // State to store roles
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Estados para el formulario de nuevo usuario
+    // States for the new user form
     const [newUserData, setNewUserData] = useState({
         username: '',
-        password: '', // Necesario para la creación
+        password: '', // Needed for creation
         email: '',
-        rol: '' // Almacenará el ID del rol seleccionado
+        rol: '' // Will store the selected role ID
     });
 
-    // Estados para el modal de edición
+    // States for the edit modal
     const [showEditModal, setShowEditModal] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null); // Usuario que se está editando
+    const [currentUser, setCurrentUser] = useState(null); // User being edited
     const [editFormData, setEditFormData] = useState({
         username: '',
-        // password: '', // No lo precargamos ni mostramos para edición
+        // password: '', // We don't pre-load or show it for editing
         email: '',
         rol: ''
     });
-    // Estado para la nueva contraseña solo durante la edición
+    // State for the new password only during editing
     const [editPassword, setEditPassword] = useState('');
 
 
-    // Función para cargar usuarios
+    // Function to load users
     const fetchUsuarios = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            console.log('🔗 Fetching usuarios from:', API_USUARIOS_URL);
+            console.log('🔗 Fetching users from:', API_USUARIOS_URL);
             const response = await axios.get(API_USUARIOS_URL);
-            console.log('📦 Usuarios data:', response.data);
+            console.log('📦 Users data:', response.data);
             setUsuarios(response.data || []);
         } catch (err) {
-            console.error('❌ Error fetching usuarios:', err.response ? err.response.data : err.message);
-            setError('No se pudieron cargar los usuarios. Intenta de nuevo.');
-            Swal.fire('Error', 'No se pudieron cargar los usuarios.', 'error');
+            console.error('❌ Error fetching users:', err.response ? err.response.data : err.message);
+            setError('Could not load users. Please try again.');
+            Swal.fire('Error', 'Could not load users.', 'error');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Función para cargar roles (necesaria para el selector)
+    // Function to load roles (needed for the selector)
     const fetchRoles = useCallback(async () => {
         try {
             console.log('🔗 Fetching roles from:', API_ROLES_URL);
@@ -72,17 +75,17 @@ const UsuariosPage = () => {
             setRoles(response.data || []);
         } catch (err) {
             console.error('❌ Error fetching roles for selector:', err.response ? err.response.data : err.message);
-            Swal.fire('Error', 'No se pudieron cargar los roles para el selector.', 'error');
+            Swal.fire('Error', 'Could not load roles for the selector.', 'error');
         }
     }, []);
 
-    // Cargar usuarios y roles al montar el componente
+    // Load users and roles on component mount
     useEffect(() => {
         fetchUsuarios();
-        fetchRoles(); // Cargar roles también
+        fetchRoles(); // Load roles as well
     }, [fetchUsuarios, fetchRoles]);
 
-    // Manejador para el formulario de nuevo usuario
+    // Handler for the new user form
     const handleNewUserChange = (e) => {
         const { name, value } = e.target;
         setNewUserData(prevData => ({ ...prevData, [name]: value }));
@@ -95,20 +98,20 @@ const UsuariosPage = () => {
         try {
             const payload = {
                 ...newUserData,
-                rol: newUserData.rol ? parseInt(newUserData.rol, 10) : null // Convertir a entero o null
+                rol: newUserData.rol ? parseInt(newUserData.rol, 10) : null // Convert to integer or null
             };
-            console.log('Payload enviado para nuevo usuario:', payload);
+            console.log('Payload sent for new user:', payload);
             const response = await axios.post(API_USUARIOS_URL, payload);
             if (response.status === 201) {
-                Swal.fire('¡Éxito!', 'Usuario agregado exitosamente.', 'success');
-                setNewUserData({ username: '', password: '', email: '', rol: '' }); // Limpiar formulario
-                fetchUsuarios(); // Recargar la lista
+                Swal.fire('Success!', 'User added successfully.', 'success');
+                setNewUserData({ username: '', password: '', email: '', rol: '' }); // Clear form
+                fetchUsuarios(); // Reload user list
             }
         } catch (err) {
-            console.error('Error al agregar usuario:', err.response ? err.response.data : err);
+            console.error('Error adding user:', err.response ? err.response.data : err);
             const errorMessage = err.response && err.response.data
                 ? Object.values(err.response.data).flat().join(' ')
-                : 'Ocurrió un error al agregar el usuario.';
+                : 'An error occurred while adding the user.';
             setError(errorMessage);
             Swal.fire('Error', errorMessage, 'error');
         } finally {
@@ -116,15 +119,15 @@ const UsuariosPage = () => {
         }
     };
 
-    // Manejadores para el modal de edición
+    // Handlers for the edit modal
     const handleEditClick = (usuario) => {
         setCurrentUser(usuario);
         setEditFormData({
             username: usuario.username,
             email: usuario.email,
-            rol: usuario.rol ? usuario.rol.id : '' // Si rol es un objeto, toma su ID; si no, cadena vacía
+            rol: usuario.rol && usuario.rol.id ? String(usuario.rol.id) : '' // If rol is an object, get its ID as string; otherwise, empty string
         });
-        setEditPassword(''); // Limpiar el campo de contraseña al abrir el modal de edición
+        setEditPassword(''); // Clear the password field when opening the edit modal
         setShowEditModal(true);
     };
 
@@ -145,10 +148,10 @@ const UsuariosPage = () => {
         const payload = {
             username: editFormData.username,
             email: editFormData.email,
-            rol: editFormData.rol ? parseInt(editFormData.rol, 10) : null // Convertir a entero o null
+            rol: editFormData.rol ? parseInt(editFormData.rol, 10) : null // Convert to integer or null
         };
 
-        // Si se proporciona una nueva contraseña, agrégala al payload
+        // If a new password is provided, add it to the payload
         if (editPassword) {
             payload.password = editPassword;
         }
@@ -156,15 +159,15 @@ const UsuariosPage = () => {
         try {
             const response = await axios.put(`${API_USUARIOS_URL}${currentUser.id}/`, payload);
             if (response.status === 200) {
-                Swal.fire('¡Éxito!', 'Usuario actualizado exitosamente.', 'success');
-                setShowEditModal(false); // Cerrar modal
-                fetchUsuarios(); // Recargar la lista
+                Swal.fire('Success!', 'User updated successfully.', 'success');
+                setShowEditModal(false); // Close modal
+                fetchUsuarios(); // Reload list
             }
         } catch (err) {
-            console.error('Error al actualizar usuario:', err.response ? err.response.data : err);
+            console.error('Error updating user:', err.response ? err.response.data : err);
             const errorMessage = err.response && err.response.data
                 ? Object.values(err.response.data).flat().join(' ')
-                : 'Ocurrió un error al actualizar el usuario.';
+                : 'An error occurred while updating the user.';
             setError(errorMessage);
             Swal.fire('Error', errorMessage, 'error');
         } finally {
@@ -174,29 +177,45 @@ const UsuariosPage = () => {
 
     const handleDeleteClick = async (usuarioId) => {
         Swal.fire({
-            title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
+            title: 'Are you sure?',
+            text: "You won't be able to revert this! If this user has associated invoices or data, they cannot be deleted.", // <<-- CLEAR MESSAGE
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminarlo!',
-            cancelButtonText: 'Cancelar'
+            confirmButtonColor: '#d33', // <<-- CHANGED: Red for delete
+            cancelButtonColor: '#6c757d', // <<-- CHANGED: Gray for cancel
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 setLoading(true);
                 setError(null);
                 try {
                     const response = await axios.delete(`${API_USUARIOS_URL}${usuarioId}/`);
-                    if (response.status === 204) { // 204 No Content es el éxito para DELETE
-                        Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado.', 'success');
-                        fetchUsuarios(); // Recargar la lista
+                    if (response.status === 204) { // 204 No Content is success for DELETE
+                        Swal.fire('Deleted!', 'The user has been deleted.', 'success');
+                        fetchUsuarios(); // Reload list
                     }
                 } catch (err) {
-                    console.error('Error al eliminar usuario:', err.response ? err.response.data : err);
-                    const errorMessage = err.response && err.response.data
-                        ? Object.values(err.response.data).flat().join(' ')
-                        : 'Ocurrió un error al eliminar el usuario.';
+                    console.error('Error deleting user:', err.response ? err.response.data : err);
+                    let errorMessage = 'An error occurred while deleting the user.';
+                    // <<-- ADDED: Specific error handling for foreign key constraint
+                    if (err.response && err.response.status === 400) { // Bad Request, may contain specific message
+                        const errorData = err.response.data;
+                        if (errorData.detail && (errorData.detail.includes('Cannot delete') || errorData.detail.includes('foreign key constraint'))) {
+                            errorMessage = 'Cannot delete the user because they have associated invoices or other data.';
+                        } else if (Object.values(errorData).flat().some(msg =>
+                            String(msg).includes('facturas asociadas') || String(msg).includes('data asociada') || String(msg).includes('referenced by other objects') || String(msg).includes('constraint failed')
+                        )) {
+                             errorMessage = 'Cannot delete the user because they have associated invoices or other data.';
+                        } else {
+                            errorMessage = Object.values(errorData).flat().join(' ');
+                        }
+                    } else if (err.response && err.response.status === 409) { // Conflict
+                        errorMessage = 'Cannot delete the user because they have associated invoices or other data.';
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Connection error. Make sure the server is running.';
+                    }
+                    // <<-- END ADDED
                     setError(errorMessage);
                     Swal.fire('Error', errorMessage, 'error');
                 } finally {
@@ -207,14 +226,24 @@ const UsuariosPage = () => {
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Gestión de Usuarios</h2>
+        <Container
+            fluid // <<-- ADDED: To take full width
+            className="usuarios-page p-4" // <<-- ADDED: Class for base styles
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Adjust to your Navbar height
+                backgroundColor: '#ffffff', // White background for the page
+                color: '#000000' // Default text color black
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faUsersCog} className="me-3" /> Gestión de Usuarios
+            </h2>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && <Alert variant="danger" className="text-center usuarios-alert-error">{error}</Alert>} {/* <<-- ADDED: Class for alert style */}
 
-            {/* Formulario para Agregar Nuevo Usuario */}
-            <Card className="mb-4 shadow-sm">
-                <Card.Header className="bg-primary text-white">
+            {/* Form to Add New User */}
+            <Card className="mb-4 shadow-sm usuarios-card"> {/* <<-- ADDED: Class for card style */}
+                <Card.Header className="usuarios-card-header-add"> {/* <<-- ADDED: Class for card header */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faPlus} className="me-2" />
                         Agregar Nuevo Usuario
@@ -225,9 +254,9 @@ const UsuariosPage = () => {
                         <Row className="g-3">
                             <Col md={6}>
                                 <Form.Group controlId="newUsername">
-                                    <Form.Label>Nombre de Usuario</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre de Usuario</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUser} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUser} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="text"
                                             name="username"
@@ -235,15 +264,16 @@ const UsuariosPage = () => {
                                             onChange={handleNewUserChange}
                                             placeholder="Ej: jdoe, admin_user"
                                             required
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newEmail">
-                                    <Form.Label>Email</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Email</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faEnvelope} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faEnvelope} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="email"
                                             name="email"
@@ -251,15 +281,16 @@ const UsuariosPage = () => {
                                             onChange={handleNewUserChange}
                                             placeholder="Ej: usuario@example.com"
                                             required
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newPassword">
-                                    <Form.Label>Contraseña</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Contraseña</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faLock} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faLock} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="password"
                                             name="password"
@@ -267,20 +298,22 @@ const UsuariosPage = () => {
                                             onChange={handleNewUserChange}
                                             placeholder="Ingresa una contraseña segura"
                                             required
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newRol">
-                                    <Form.Label>Rol</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Rol</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Select
                                             name="rol"
                                             value={newUserData.rol}
                                             onChange={handleNewUserChange}
                                             required
+                                            className="form-select-light" // <<-- ADDED: Style class
                                         >
                                             <option value="">Selecciona un Rol</option>
                                             {roles.map(rol => (
@@ -293,16 +326,16 @@ const UsuariosPage = () => {
                                 </Form.Group>
                             </Col>
                             <Col xs={12} className="text-end">
-                                <Button variant="success" type="submit" disabled={loading}>
+                                <Button variant="success" type="submit" disabled={loading} className="btn-add-submit"> {/* <<-- ADDED: Style class */}
                                     {loading ? (
                                         <>
                                             <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
-                                            Agregando...
+                                            Adding...
                                         </>
                                     ) : (
                                         <>
                                             <FontAwesomeIcon icon={faPlus} className="me-2" />
-                                            Agregar Usuario
+                                            Add User
                                         </>
                                     )}
                                 </Button>
@@ -312,38 +345,38 @@ const UsuariosPage = () => {
                 </Card.Body>
             </Card>
 
-            {/* Lista de Usuarios */}
-            <Card className="shadow-sm">
-                <Card.Header className="bg-info text-white">
+            {/* List of Users */}
+            <Card className="shadow-sm usuarios-card"> {/* <<-- ADDED: Class for card style */}
+                <Card.Header className="usuarios-card-header-list"> {/* <<-- ADDED: Class for card header */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
-                        Usuarios Existentes
+                        Existing Users
                     </h5>
                 </Card.Header>
                 <Card.Body>
                     {loading && (
                         <div className="text-center my-3">
-                            <Spinner animation="border" role="status">
-                                <span className="visually-hidden">Cargando usuarios...</span>
+                            <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* <<-- ADDED: Spinner color */}
+                                <span className="visually-hidden">Loading users...</span>
                             </Spinner>
-                            <p className="mt-2">Cargando usuarios...</p>
+                            <p className="mt-2" style={{ color: '#000000'}}>Loading users...</p> {/* <<-- ADDED: Text color */}
                         </div>
                     )}
                     {!loading && usuarios.length === 0 && (
-                        <div className="alert alert-info text-center mt-3">
-                            No hay usuarios registrados aún.
-                        </div>
+                        <Alert variant="info" className="text-center mt-3 usuarios-alert-info"> {/* <<-- ADDED: Class for alert style */}
+                            No users registered yet.
+                        </Alert>
                     )}
                     {!loading && usuarios.length > 0 && (
-                        <div className="table-responsive">
-                            <Table striped bordered hover className="mt-3">
+                        <div className="table-responsive usuarios-table-wrapper"> {/* <<-- ADDED: Class for table style */}
+                            <Table striped hover className="mt-3 usuarios-table-light"> {/* <<-- ADDED: Class for table style */}
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Nombre de Usuario</th>
+                                        <th>Username</th>
                                         <th>Email</th>
-                                        <th>Rol</th>
-                                        <th className="text-center">Acciones</th>
+                                        <th>Role</th>
+                                        <th className="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -352,23 +385,24 @@ const UsuariosPage = () => {
                                             <td>{usuario.id}</td>
                                             <td>{usuario.username}</td>
                                             <td>{usuario.email}</td>
-                                            {/* Acceder al nombre del rol a través del objeto 'rol' */}
-                                            <td>{usuario.rol ? usuario.rol.nombre : 'Sin Rol'}</td>
-                                            <td className="text-center">
+                                            {/* Access role name through the 'rol' object */}
+                                            <td>{usuario.rol ? usuario.rol.nombre : 'No Role'}</td>
+                                            <td className="text-center d-flex justify-content-center gap-2"> {/* <<-- ADDED: Use gap-2 for spacing */}
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="me-2"
+                                                    className="btn-action-edit" // <<-- ADDED: Style class
                                                     onClick={() => handleEditClick(usuario)}
                                                 >
-                                                    <FontAwesomeIcon icon={faEdit} /> Editar
+                                                    <FontAwesomeIcon icon={faEdit} /> Edit
                                                 </Button>
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
+                                                    className="btn-action-delete" // <<-- ADDED: Style class
                                                     onClick={() => handleDeleteClick(usuario.id)}
                                                 >
-                                                    <FontAwesomeIcon icon={faTrash} /> Eliminar
+                                                    <FontAwesomeIcon icon={faTrash} /> Delete
                                                 </Button>
                                             </td>
                                         </tr>
@@ -380,71 +414,75 @@ const UsuariosPage = () => {
                 </Card.Body>
             </Card>
 
-            {/* Modal de Edición de Usuario */}
+            {/* User Edit Modal */}
             <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-                <Modal.Header closeButton className="bg-warning text-white">
-                    <Modal.Title>
+                <Modal.Header closeButton className="modal-header-light"> {/* <<-- ADDED: Style class */}
+                    <Modal.Title className="modal-title-light"> {/* <<-- ADDED: Style class */}
                         <FontAwesomeIcon icon={faEdit} className="me-2" />
-                        Editar Usuario
+                        Edit User
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="modal-body-light"> {/* <<-- ADDED: Style class */}
                         {currentUser && (
                             <>
                                 <Form.Group className="mb-3" controlId="editUsername">
-                                    <Form.Label>Nombre de Usuario</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Username</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUser} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUser} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="text"
                                             name="username"
                                             value={editFormData.username}
                                             onChange={handleEditFormChange}
                                             required
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editEmail">
-                                    <Form.Label>Email</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Email</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faEnvelope} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faEnvelope} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="email"
                                             name="email"
                                             value={editFormData.email}
                                             onChange={handleEditFormChange}
                                             required
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editPassword">
-                                    <Form.Label>Nueva Contraseña (opcional)</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>New Password (optional)</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faLock} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faLock} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Control
                                             type="password"
                                             name="password"
-                                            value={editPassword} // Usa un estado separado para la nueva contraseña
+                                            value={editPassword} // Use a separate state for the new password
                                             onChange={handleEditPasswordChange}
-                                            placeholder="Deja vacío para no cambiar"
+                                            placeholder="Leave empty to not change"
+                                            className="form-control-light" // <<-- ADDED: Style class
                                         />
                                     </InputGroup>
-                                    <Form.Text className="text-muted">
-                                        Ingresa una nueva contraseña solo si deseas cambiarla.
+                                    <Form.Text className="text-muted" style={{color: '#555555 !important'}}> {/* <<-- ADDED: Text color */}
+                                        Enter a new password only if you want to change it.
                                     </Form.Text>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editRol">
-                                    <Form.Label>Rol</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Role</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Select
                                             name="rol"
                                             value={editFormData.rol}
                                             onChange={handleEditFormChange}
                                             required
+                                            className="form-select-light" // <<-- ADDED: Style class
                                         >
-                                            <option value="">Selecciona un Rol</option>
+                                            <option value="">Select a Role</option>
                                             {roles.map(rol => (
                                                 <option key={rol.id} value={rol.id}>
                                                     {rol.nombre}
@@ -456,21 +494,21 @@ const UsuariosPage = () => {
                             </>
                         )}
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                    <Modal.Footer className="modal-footer-light"> {/* <<-- ADDED: Style class */}
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)} className="btn-close-modal"> {/* <<-- ADDED: Style class */}
                             <FontAwesomeIcon icon={faTimes} className="me-2" />
-                            Cancelar
+                            Cancel
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading} className="btn-save-modal"> {/* <<-- ADDED: Style class */}
                             {loading ? (
                                 <>
                                     <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
-                                    Guardando...
+                                    Saving...
                                 </>
                             ) : (
                                 <>
                                     <FontAwesomeIcon icon={faSave} className="me-2" />
-                                    Guardar Cambios
+                                    Save Changes
                                 </>
                             )}
                         </Button>

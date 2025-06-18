@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    Modal, Card
+    Modal, Card, Alert // Añadido Alert para consistencia en mensajes de error
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faHandshake } from '@fortawesome/free-solid-svg-icons'; // Añadido faHandshake para el título de la página
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// Importa tus estilos personalizados para esta página
+import '../styles/ProveedoresPage.css'; // Nuevo archivo CSS
 
 // Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -127,11 +130,11 @@ const ProveedoresPage = () => {
     const handleDeleteClick = async (proveedorId) => {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
+            text: "¡No podrás revertir esto! Se eliminará el proveedor.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, eliminarlo!',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
@@ -146,9 +149,25 @@ const ProveedoresPage = () => {
                     }
                 } catch (err) {
                     console.error('Error al eliminar proveedor:', err.response ? err.response.data : err);
-                    const errorMessage = err.response && err.response.data
-                        ? Object.values(err.response.data).flat().join(' ')
-                        : 'Ocurrió un error al eliminar el proveedor.';
+                    let errorMessage = 'Ocurrió un error al eliminar el proveedor.';
+                    // <<-- AÑADIDO: Manejo de error específico para restricción de clave foránea
+                    if (err.response && err.response.status === 400) {
+                        const errorData = err.response.data;
+                        if (errorData.detail && (errorData.detail.includes('Cannot delete') || errorData.detail.includes('foreign key constraint'))) {
+                            errorMessage = 'No es posible eliminar el proveedor porque tiene productos asociados.';
+                        } else if (Object.values(errorData).flat().some(msg =>
+                            String(msg).includes('productos asociados') || String(msg).includes('referenced by other objects') || String(msg).includes('constraint failed')
+                        )) {
+                             errorMessage = 'No es posible eliminar el proveedor porque tiene productos asociados.';
+                        } else {
+                            errorMessage = Object.values(errorData).flat().join(' ');
+                        }
+                    } else if (err.response && err.response.status === 409) { // Posible conflicto
+                        errorMessage = 'No es posible eliminar el proveedor porque tiene productos asociados.';
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Error de conexión. Asegúrate de que el servidor esté funcionando.';
+                    }
+                    // <<-- FIN AÑADIDO
                     setError(errorMessage);
                     Swal.fire('Error', errorMessage, 'error');
                 } finally {
@@ -159,14 +178,24 @@ const ProveedoresPage = () => {
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Gestión de Proveedores</h2>
+        <Container
+            fluid // Para que ocupe todo el ancho
+            className="proveedores-page p-4" // Clase para estilos base
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+                backgroundColor: '#ffffff', // Fondo blanco para la página
+                color: '#000000' // Texto negro por defecto
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faHandshake} className="me-3" /> Gestión de Proveedores
+            </h2>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && <Alert variant="danger" className="text-center proveedores-alert-error">{error}</Alert>} {/* Clase para estilo de alerta */}
 
             {/* Formulario para Agregar Nuevo Proveedor */}
-            <Card className="mb-4 shadow-sm">
-                <Card.Header className="bg-primary text-white">
+            <Card className="mb-4 shadow-sm proveedores-card"> {/* Clase para estilo de tarjeta */}
+                <Card.Header className="proveedores-card-header-add"> {/* Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faPlus} className="me-2" />
                         Agregar Nuevo Proveedor
@@ -177,7 +206,7 @@ const ProveedoresPage = () => {
                         <Row className="g-3">
                             <Col md={6}>
                                 <Form.Group controlId="newProveedorNombre">
-                                    <Form.Label>Nombre del Proveedor</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre del Proveedor</Form.Label> {/* Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="nombre"
@@ -185,23 +214,25 @@ const ProveedoresPage = () => {
                                         onChange={handleNewProveedorChange}
                                         placeholder="Ej: Distribuidora XYZ"
                                         required
+                                        className="form-control-light" // Clase de estilo
                                     />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newProveedorContacto">
-                                    <Form.Label>Contacto</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Contacto</Form.Label> {/* Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="contacto"
                                         value={newProveedorData.contacto}
                                         onChange={handleNewProveedorChange}
                                         placeholder="Ej: Juan Pérez / 123-4567"
+                                        className="form-control-light" // Clase de estilo
                                     />
                                 </Form.Group>
                             </Col>
                             <Col xs={12} className="text-end">
-                                <Button variant="success" type="submit" disabled={loading}>
+                                <Button variant="success" type="submit" disabled={loading} className="btn-add-submit"> {/* Clase de estilo */}
                                     {loading ? (
                                         <>
                                             <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
@@ -221,8 +252,8 @@ const ProveedoresPage = () => {
             </Card>
 
             {/* Lista de Proveedores */}
-            <Card className="shadow-sm">
-                <Card.Header className="bg-info text-white">
+            <Card className="shadow-sm proveedores-card"> {/* Clase para estilo de tarjeta */}
+                <Card.Header className="proveedores-card-header-list"> {/* Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
                         Proveedores Existentes
@@ -231,20 +262,20 @@ const ProveedoresPage = () => {
                 <Card.Body>
                     {loading && (
                         <div className="text-center my-3">
-                            <Spinner animation="border" role="status">
+                            <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* Color del spinner */}
                                 <span className="visually-hidden">Cargando proveedores...</span>
                             </Spinner>
-                            <p className="mt-2">Cargando proveedores...</p>
+                            <p className="mt-2" style={{ color: '#000000'}}>Cargando proveedores...</p> {/* Color del texto */}
                         </div>
                     )}
                     {!loading && proveedores.length === 0 && (
-                        <div className="alert alert-info text-center mt-3">
+                        <Alert variant="info" className="text-center mt-3 proveedores-alert-info"> {/* Clase para estilo de alerta */}
                             No hay proveedores registrados aún.
-                        </div>
+                        </Alert>
                     )}
                     {!loading && proveedores.length > 0 && (
-                        <div className="table-responsive">
-                            <Table striped bordered hover className="mt-3">
+                        <div className="table-responsive proveedores-table-wrapper"> {/* Clase para estilo de tabla */}
+                            <Table striped hover className="mt-3 proveedores-table-light"> {/* Clase para estilo de tabla */}
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -259,11 +290,11 @@ const ProveedoresPage = () => {
                                             <td>{proveedor.id}</td>
                                             <td>{proveedor.nombre}</td>
                                             <td>{proveedor.contacto || 'N/A'}</td>
-                                            <td className="text-center">
+                                            <td className="text-center d-flex justify-content-center gap-2"> {/* Usar gap-2 para espacio */}
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="me-2"
+                                                    className="btn-action-edit" // Clase de estilo
                                                     onClick={() => handleEditClick(proveedor)}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} /> Editar
@@ -271,6 +302,7 @@ const ProveedoresPage = () => {
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
+                                                    className="btn-action-delete" // Clase de estilo
                                                     onClick={() => handleDeleteClick(proveedor.id)}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} /> Eliminar
@@ -287,44 +319,46 @@ const ProveedoresPage = () => {
 
             {/* Modal de Edición de Proveedor */}
             <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-                <Modal.Header closeButton className="bg-warning text-white">
-                    <Modal.Title>
+                <Modal.Header closeButton className="modal-header-light"> {/* Clase de estilo */}
+                    <Modal.Title className="modal-title-light"> {/* Clase de estilo */}
                         <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Editar Proveedor
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="modal-body-light"> {/* Clase de estilo */}
                         {currentProveedor && (
                             <>
                                 <Form.Group className="mb-3" controlId="editProveedorNombre">
-                                    <Form.Label>Nombre</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre</Form.Label> {/* Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="nombre"
                                         value={editFormData.nombre}
                                         onChange={handleEditFormChange}
                                         required
+                                        className="form-control-light" // Clase de estilo
                                     />
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editProveedorContacto">
-                                    <Form.Label>Contacto</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Contacto</Form.Label> {/* Color negro */}
                                     <Form.Control
                                         type="text"
                                         name="contacto"
                                         value={editFormData.contacto}
                                         onChange={handleEditFormChange}
+                                        className="form-control-light" // Clase de estilo
                                     />
                                 </Form.Group>
                             </>
                         )}
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                    <Modal.Footer className="modal-footer-light"> {/* Clase de estilo */}
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)} className="btn-close-modal"> {/* Clase de estilo */}
                             <FontAwesomeIcon icon={faTimes} className="me-2" />
                             Cancelar
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading} className="btn-save-modal"> {/* Clase de estilo */}
                             {loading ? (
                                 <>
                                     <FontAwesomeIcon icon={faSpinner} spin className="me-2" />

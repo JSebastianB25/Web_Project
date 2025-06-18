@@ -1,7 +1,7 @@
-/* Estilos para CategoriasPage.js */
+/* Estilos para MarcasPage.js */
 
 /* --- Contenedor Principal de la Página --- */
-.categorias-page {
+.marcas-page {
     padding-top: 30px;
     padding-bottom: 30px;
     background-color: #ffffff; /* Fondo blanco global */
@@ -9,7 +9,7 @@
 }
 
 /* --- Tarjetas (Agregar y Listar) --- */
-.categorias-card {
+.marcas-card {
     background-color: #ffffff !important; /* Fondo blanco para las tarjetas */
     border: 1px solid #e0e0e0 !important; /* Borde gris muy suave */
     border-radius: 12px; /* Bordes redondeados */
@@ -17,8 +17,8 @@
     margin-bottom: 25px; /* Espacio entre tarjetas */
 }
 
-.categorias-card-header-add,
-.categorias-card-header-list {
+.marcas-card-header-add,
+.marcas-card-header-list {
     background-color: #f8f9fa !important; /* Fondo gris muy claro para el encabezado de la tarjeta */
     border-bottom: 1px solid #e0e0e0 !important; /* Borde inferior suave */
     color: #000000 !important; /* Texto negro */
@@ -32,23 +32,22 @@
 }
 
 /* Colores específicos para los headers de las tarjetas */
-.categorias-card-header-add {
+.marcas-card-header-add {
     color: #008a4d !important; /* Verde oscuro para "Agregar" */
 }
-.categorias-card-header-list {
+.marcas-card-header-list {
     color: #17a2b8 !important; /* Teal/Cian para "Existentes" */
 }
 
 
-/* --- Estilos para Inputs, Selects (modo claro) --- */
+/* --- Estilos para Inputs --- */
 .form-label {
     color: #333333; /* Etiquetas de formulario en gris oscuro */
     font-weight: 500;
     margin-bottom: 5px;
 }
 
-.form-control-light,
-.form-select-light {
+.form-control-light {
     background-color: #f8f9fa !important; /* Fondo muy claro */
     border: 1px solid #ced4da !important; /* Borde estándar */
     color: #333333 !important; /* Texto oscuro */
@@ -63,15 +62,22 @@
     opacity: 1;
 }
 
-.form-control-light:focus,
-.form-select-light:focus {
+.form-control-light:focus {
     border-color: #00b45c !important; /* Borde verde al enfocar */
     box-shadow: 0 0 0 0.25rem rgba(0, 180, 92, 0.25) !important;
     background-color: #ffffff !important;
 }
 
+/* Estilos para el InputGroup.Text (iconos) */
+.input-group-text-light {
+    background-color: #e9ecef !important; /* Fondo gris claro */
+    border: 1px solid #ced4da !important;
+    color: #495057 !important; /* Texto gris oscuro */
+    border-radius: 8px 0 0 8px; /* Bordes solo a la izquierda */
+}
 
-/* --- Botón de Agregar Categoría --- */
+
+/* --- Botón de Agregar Marca --- */
 .btn-add-submit {
     background-color: #00b45c !important; /* Verde principal */
     border-color: #00b45c !important;
@@ -89,8 +95,8 @@
 }
 
 
-/* --- Tablas (Lista de Categorías) --- */
-.categorias-table-wrapper {
+/* --- Tablas (Lista de Marcas) --- */
+.marcas-table-wrapper {
     margin-bottom: 20px;
     border-radius: 8px;
     overflow-x: auto;
@@ -98,14 +104,14 @@
     box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
-.categorias-table-light {
+.marcas-table-light {
     width: 100%;
-    min-width: 500px; /* Ancho mínimo para la tabla */
+    min-width: 600px; /* Ancho mínimo para la tabla */
     color: #000000;
     border-collapse: collapse;
 }
 
-.categorias-table-light thead th {
+.marcas-table-light thead th {
     background-color: #e6ffe6 !important; /* Fondo verde muy claro para encabezado */
     color: #008a4d !important; /* Texto del encabezado verde oscuro */
     border-bottom: 2px solid #00b45c !important;
@@ -115,7 +121,7 @@
     white-space: nowrap;
 }
 
-.categorias-table-light tbody td {
+.marcas-table-light tbody td {
     background-color: #ffffff; /* Fondo de celdas blanco */
     border-bottom: 1px solid #eeeeee; /* Borde de celda muy claro */
     color: #333333; /* Texto oscuro para legibilidad */
@@ -124,12 +130,23 @@
     font-size: 0.9rem;
 }
 
-.categorias-table-light tbody tr:nth-of-type(odd) td {
+.marcas-table-light tbody tr:nth-of-type(odd) td {
     background-color: #f8f8f8; /* Fondo de celdas impares ligeramente gris */
 }
 
-.categorias-table-light tbody tr:hover {
+.marcas-table-light tbody tr:hover {
     background-color: #e6ffe6 !important; /* Fondo verde muy claro al pasar el mouse */
+}
+
+/* Estilo para la imagen en la tabla */
+.marca-table-img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 3px; /* Pequeño redondeo */
+    border: 1px solid #e0e0e0;
+    background-color: #f8f9fa; /* Fondo claro para la imagen */
+    padding: 2px;
 }
 
 
@@ -191,6 +208,28 @@
     border-top: 1px solid #e0e0e0 !important; /* Borde suave */
 }
 
+/* Contenedor de previsualización de imagen en el modal */
+.image-preview-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 150px; /* Altura ajustada para el modal */
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 5px;
+}
+
+
 /* Botones dentro del modal */
 .btn-close-modal {
     background-color: #6c757d !important; /* Gris secundario */
@@ -226,7 +265,7 @@
 
 
 /* --- Alertas de la Página --- */
-.categorias-alert-error {
+.marcas-alert-error {
     background-color: #f8d7da; /* Rojo claro de Bootstrap */
     border-color: #f5c6cb;
     color: #721c24; /* Rojo oscuro de Bootstrap */
@@ -236,7 +275,7 @@
     font-weight: 500;
 }
 
-.categorias-alert-info {
+.marcas-alert-info {
     background-color: #d1ecf1; /* Azul claro de Bootstrap */
     border-color: #bee5eb;
     color: #0c5460; /* Azul oscuro de Bootstrap */
@@ -249,18 +288,17 @@
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 992px) { /* Para tablets y pantallas más pequeñas */
-    .categorias-page {
+    .marcas-page {
         padding: 15px;
     }
-    .categorias-card {
+    .marcas-card {
         margin-bottom: 20px;
     }
-    .categorias-card-header-add,
-    .categorias-card-header-list {
+    .marcas-card-header-add,
+    .marcas-card-header-list {
         font-size: 1.15rem;
     }
-    .form-control-light,
-    .form-select-light {
+    .form-control-light {
         font-size: 0.9rem;
         padding: 8px 12px;
     }
@@ -272,29 +310,29 @@
         font-size: 0.85rem;
         padding: 7px 14px;
     }
-    .categorias-table-light th,
-    .categorias-table-light td {
+    .marcas-table-light th,
+    .marcas-table-light td {
         font-size: 0.85rem;
     }
-    .categorias-table-light .text-center.d-flex.justify-content-center {
+    .marcas-table-light .text-center.d-flex.justify-content-center {
         flex-wrap: wrap; /* Permite que los botones se envuelvan */
         gap: 5px; /* Pequeño espacio entre ellos al envolver */
     }
 }
 
 @media (max-width: 768px) { /* Para móviles */
-    .categorias-page {
+    .marcas-page {
         padding: 10px;
     }
-    .categorias-card-header-add,
-    .categorias-card-header-list {
+    .marcas-card-header-add,
+    .marcas-card-header-list {
         font-size: 1rem;
     }
     .btn-add-submit {
         width: 100%; /* Ocupa todo el ancho */
     }
-    .categorias-table-light th,
-    .categorias-table-light td {
+    .marcas-table-light th,
+    .marcas-table-light td {
         font-size: 0.8rem;
     }
     .btn-action-edit,

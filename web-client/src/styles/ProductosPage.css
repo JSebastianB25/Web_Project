@@ -1,0 +1,210 @@
+/* Estilos para ProductosPage.js */
+
+/* --- Contenedor Principal de la Página --- */
+.productos-page {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    background-color: #ffffff; /* Fondo blanco global */
+    color: #000000; /* Texto principal en negro */
+}
+
+/* --- Título de la Página --- */
+.productos-page h2 {
+    color: #000000;
+    font-weight: bold;
+    font-size: 2.2rem;
+    margin-bottom: 30px;
+}
+
+/* --- Tarjeta de Búsqueda --- */
+.productos-search-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    padding: 10px 15px; /* Ajuste de padding */
+}
+
+/* --- Estilos para Inputs y Botones de Búsqueda --- */
+.form-control-light {
+    background-color: #f8f9fa !important;
+    border: 1px solid #ced4da !important;
+    color: #333333 !important;
+    border-radius: 8px 0 0 8px; /* Solo redondeado a la izquierda */
+    padding: 10px 15px;
+    font-size: 1rem;
+    transition: all 0.3s ease-in-out;
+}
+
+.form-control-light::placeholder {
+    color: #888888;
+    opacity: 1;
+}
+
+.form-control-light:focus {
+    border-color: #00b45c !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 180, 92, 0.25) !important;
+    background-color: #ffffff !important;
+}
+
+.btn-search-product {
+    background-color: #00b45c !important; /* Verde principal */
+    border-color: #00b45c !important;
+    color: #ffffff !important;
+    border-radius: 0 !important; /* Sin redondeo */
+    transition: all 0.2s ease;
+    padding: 10px 15px;
+}
+.btn-search-product:hover {
+    background-color: #008a4d !important;
+    border-color: #008a4d !important;
+}
+
+.btn-clear-search {
+    background-color: #dc3545 !important; /* Rojo */
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    border-radius: 0 8px 8px 0 !important; /* Solo redondeado a la derecha */
+    transition: all 0.2s ease;
+    padding: 10px 15px;
+}
+.btn-clear-search:hover {
+    background-color: #c82333 !important;
+    border-color: #c82333 !important;
+}
+
+
+/* --- Mensajes de Estado (Alerts) --- */
+.productos-alert-error {
+    background-color: #f8d7da; /* Rojo claro de Bootstrap */
+    border-color: #f5c6cb;
+    color: #721c24; /* Rojo oscuro de Bootstrap */
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.productos-alert-info {
+    background-color: #d1ecf1; /* Azul claro de Bootstrap */
+    border-color: #bee5eb;
+    color: #0c5460; /* Azul oscuro de Bootstrap */
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+
+/* --- Tarjetas de Producto --- */
+.productos-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    overflow: hidden; /* Asegura que la imagen no se desborde */
+}
+
+.productos-card:hover {
+    transform: translateY(-5px); /* Efecto de "levantar" */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.productos-card-img {
+    height: 200px;
+    object-fit: contain; /* Mantiene la proporción y rellena el contenedor */
+    padding: 10px;
+    background-color: #f8f9fa; /* Fondo ligero para la imagen */
+    border-top-left-radius: 12px; /* Coincide con el radio de la tarjeta */
+    border-top-right-radius: 12px;
+}
+
+.productos-card-body {
+    padding: 1.25rem; /* Padding estándar de Card.Body */
+    display: flex;
+    flex-direction: column;
+}
+
+.productos-card-title {
+    color: #000000 !important;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.productos-card-ref {
+    color: #6c757d !important; /* Gris para la referencia */
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem !important;
+}
+
+.productos-card-details {
+    color: #333333 !important;
+    font-size: 0.95rem;
+    line-height: 1.5; /* Espaciado de línea */
+}
+
+.productos-card-details strong {
+    color: #000000; /* Negritas en negro para mayor contraste */
+}
+
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) { /* Para tablets y pantallas más pequeñas */
+    .productos-page {
+        padding: 15px;
+    }
+    .productos-page h2 {
+        font-size: 1.8rem;
+    }
+    .productos-search-card {
+        padding: 8px 12px;
+    }
+    .form-control-light,
+    .btn-search-product,
+    .btn-clear-search {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    .productos-card-img {
+        height: 180px;
+    }
+    .productos-card-title {
+        font-size: 1.1rem;
+    }
+    .productos-card-ref,
+    .productos-card-details {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 768px) { /* Para móviles */
+    .productos-page {
+        padding: 10px;
+    }
+    .productos-page h2 {
+        font-size: 1.5rem;
+    }
+    .productos-search-card {
+        padding: 5px 10px;
+    }
+    .form-control-light,
+    .btn-search-product,
+    .btn-clear-search {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+    .productos-card-img {
+        height: 160px;
+    }
+    .productos-card-title {
+        font-size: 1rem;
+    }
+    .productos-card-ref,
+    .productos-card-details {
+        font-size: 0.8rem;
+    }
+    .productos-card {
+        margin-bottom: 15px; /* Espacio entre tarjetas en móviles */
+    }
+}

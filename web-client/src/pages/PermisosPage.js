@@ -3,15 +3,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    Modal, InputGroup, Card
+    Modal, InputGroup, Card, Alert // <<-- AÑADIDO: Alert para consistencia en mensajes de error
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus, faEdit, faTrash, faSpinner, faInfoCircle,
-    faSave, faTimes, faKey, faUserTag, faAlignLeft
+    faSave, faTimes, faKey, faUserTag, faAlignLeft, faUserCog // <<-- AÑADIDO: faUserCog para el título de la página
 } from '@fortawesome/free-solid-svg-icons'; // faKey para permisos
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// Importa tus estilos personalizados para esta página
+import '../styles/PermisosPage.css'; // <<-- NUEVO ARCHIVO CSS
 
 // Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -119,7 +122,7 @@ const PermisosPage = () => {
         setEditFormData({
             nombre: permiso.nombre,
             descripcion: permiso.descripcion || '',
-            rol: permiso.rol ? permiso.rol.id : '' // Si rol es un objeto, toma su ID; si no, cadena vacía
+            rol: permiso.rol && permiso.rol.id ? String(permiso.rol.id) : '' // Si rol es un objeto, toma su ID como string; si no, cadena vacía
         });
         setShowEditModal(true);
     };
@@ -160,11 +163,11 @@ const PermisosPage = () => {
     const handleDeleteClick = async (permisoId) => {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
+            text: "¡No podrás revertir esto! Si este permiso está asignado a usuarios o roles, no podrá ser eliminado.", // <<-- MENSAJE CLARO
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#d33', // <<-- CAMBIADO: Rojo para eliminar
+            cancelButtonColor: '#6c757d', // <<-- CAMBIADO: Gris para cancelar
             confirmButtonText: 'Sí, eliminarlo!',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
@@ -179,9 +182,25 @@ const PermisosPage = () => {
                     }
                 } catch (err) {
                     console.error('Error al eliminar permiso:', err.response ? err.response.data : err);
-                    const errorMessage = err.response && err.response.data
-                        ? Object.values(err.response.data).flat().join(' ')
-                        : 'Ocurrió un error al eliminar el permiso.';
+                    let errorMessage = 'Ocurrió un error al eliminar el permiso.';
+                    // <<-- AÑADIDO: Manejo de error específico para restricción de clave foránea
+                    if (err.response && err.response.status === 400) { // Bad Request, puede contener mensaje específico
+                        const errorData = err.response.data;
+                        if (errorData.detail && (errorData.detail.includes('Cannot delete') || errorData.detail.includes('foreign key constraint'))) {
+                            errorMessage = 'No es posible eliminar el permiso porque está asociado a uno o más roles o usuarios.';
+                        } else if (Object.values(errorData).flat().some(msg =>
+                            String(msg).includes('roles asociados') || String(msg).includes('usuarios asociados') || String(msg).includes('referenced by other objects') || String(msg).includes('constraint failed')
+                        )) {
+                             errorMessage = 'No es posible eliminar el permiso porque está asociado a uno o más roles o usuarios.';
+                        } else {
+                            errorMessage = Object.values(errorData).flat().join(' ');
+                        }
+                    } else if (err.response && err.response.status === 409) { // Posible conflicto
+                        errorMessage = 'No es posible eliminar el permiso porque está asociado a uno o más roles o usuarios.';
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Error de conexión. Asegúrate de que el servidor esté funcionando.';
+                    }
+                    // <<-- FIN AÑADIDO
                     setError(errorMessage);
                     Swal.fire('Error', errorMessage, 'error');
                 } finally {
@@ -192,14 +211,24 @@ const PermisosPage = () => {
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Gestión de Permisos</h2>
+        <Container
+            fluid // <<-- AÑADIDO: Para que ocupe todo el ancho
+            className="permisos-page p-4" // <<-- AÑADIDO: Clase para estilos base
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+                backgroundColor: '#ffffff', // Fondo blanco para la página
+                color: '#000000' // Texto negro por defecto
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faUserCog} className="me-3" /> Gestión de Permisos
+            </h2>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && <Alert variant="danger" className="text-center permisos-alert-error">{error}</Alert>} {/* <<-- AÑADIDO: Clase para estilo de alerta */}
 
             {/* Formulario para Agregar Nuevo Permiso */}
-            <Card className="mb-4 shadow-sm">
-                <Card.Header className="bg-primary text-white">
+            <Card className="mb-4 shadow-sm permisos-card"> {/* <<-- AÑADIDO: Clase para estilo de tarjeta */}
+                <Card.Header className="permisos-card-header-add"> {/* <<-- AÑADIDO: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faPlus} className="me-2" />
                         Agregar Nuevo Permiso
@@ -210,9 +239,9 @@ const PermisosPage = () => {
                         <Row className="g-3">
                             <Col md={6}>
                                 <Form.Group controlId="newPermisoNombre">
-                                    <Form.Label>Nombre del Permiso</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre del Permiso</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faKey} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faKey} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Control
                                             type="text"
                                             name="nombre"
@@ -220,15 +249,16 @@ const PermisosPage = () => {
                                             onChange={handleNewPermisoChange}
                                             placeholder="Ej: gestionar_productos"
                                             required
+                                            className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newPermisoDescripcion">
-                                    <Form.Label>Descripción</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Descripción</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faAlignLeft} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faAlignLeft} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Control
                                             as="textarea" // Usar textarea para descripciones más largas
                                             name="descripcion"
@@ -236,20 +266,22 @@ const PermisosPage = () => {
                                             onChange={handleNewPermisoChange}
                                             placeholder="Ej: Permite crear, editar y eliminar productos."
                                             rows={2} // Altura inicial del textarea
+                                            className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group controlId="newPermisoRol">
-                                    <Form.Label>Rol Asociado</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Rol Asociado</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Select
                                             name="rol"
                                             value={newPermisoData.rol}
                                             onChange={handleNewPermisoChange}
                                             required
+                                            className="form-select-light" // <<-- AÑADIDO: Clase de estilo
                                         >
                                             <option value="">Selecciona un Rol</option>
                                             {roles.map(rol => (
@@ -262,7 +294,7 @@ const PermisosPage = () => {
                                 </Form.Group>
                             </Col>
                             <Col xs={12} className="text-end">
-                                <Button variant="success" type="submit" disabled={loading}>
+                                <Button variant="success" type="submit" disabled={loading} className="btn-add-submit"> {/* <<-- AÑADIDO: Clase de estilo */}
                                     {loading ? (
                                         <>
                                             <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
@@ -282,8 +314,8 @@ const PermisosPage = () => {
             </Card>
 
             {/* Lista de Permisos */}
-            <Card className="shadow-sm">
-                <Card.Header className="bg-info text-white">
+            <Card className="shadow-sm permisos-card"> {/* <<-- AÑADIDO: Clase para estilo de tarjeta */}
+                <Card.Header className="permisos-card-header-list"> {/* <<-- AÑADIDO: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
                         Permisos Existentes
@@ -292,20 +324,20 @@ const PermisosPage = () => {
                 <Card.Body>
                     {loading && (
                         <div className="text-center my-3">
-                            <Spinner animation="border" role="status">
+                            <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* <<-- AÑADIDO: Color del spinner */}
                                 <span className="visually-hidden">Cargando permisos...</span>
                             </Spinner>
-                            <p className="mt-2">Cargando permisos...</p>
+                            <p className="mt-2" style={{ color: '#000000'}}>Cargando permisos...</p> {/* <<-- AÑADIDO: Color del texto */}
                         </div>
                     )}
                     {!loading && permisos.length === 0 && (
-                        <div className="alert alert-info text-center mt-3">
+                        <Alert variant="info" className="text-center mt-3 permisos-alert-info"> {/* <<-- AÑADIDO: Clase para estilo de alerta */}
                             No hay permisos registrados aún.
-                        </div>
+                        </Alert>
                     )}
                     {!loading && permisos.length > 0 && (
-                        <div className="table-responsive">
-                            <Table striped bordered hover className="mt-3">
+                        <div className="table-responsive permisos-table-wrapper"> {/* <<-- AÑADIDO: Clase para estilo de tabla */}
+                            <Table striped hover className="mt-3 permisos-table-light"> {/* <<-- AÑADIDO: Clase para estilo de tabla */}
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -323,11 +355,11 @@ const PermisosPage = () => {
                                             <td>{permiso.descripcion || 'Sin descripción'}</td>
                                             {/* Acceder al nombre del rol a través del objeto 'rol' */}
                                             <td>{permiso.rol ? permiso.rol.nombre : 'N/A'}</td>
-                                            <td className="text-center">
+                                            <td className="text-center d-flex justify-content-center gap-2"> {/* <<-- AÑADIDO: Usar gap-2 para espacio */}
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="me-2"
+                                                    className="btn-action-edit" // <<-- AÑADIDO: Clase de estilo
                                                     onClick={() => handleEditClick(permiso)}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} /> Editar
@@ -335,6 +367,7 @@ const PermisosPage = () => {
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
+                                                    className="btn-action-delete" // <<-- AÑADIDO: Clase de estilo
                                                     onClick={() => handleDeleteClick(permiso.id)}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} /> Eliminar
@@ -351,51 +384,54 @@ const PermisosPage = () => {
 
             {/* Modal de Edición de Permiso */}
             <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-                <Modal.Header closeButton className="bg-warning text-white">
-                    <Modal.Title>
+                <Modal.Header closeButton className="modal-header-light"> {/* <<-- AÑADIDO: Clase de estilo */}
+                    <Modal.Title className="modal-title-light"> {/* <<-- AÑADIDO: Clase de estilo */}
                         <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Editar Permiso
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="modal-body-light"> {/* <<-- AÑADIDO: Clase de estilo */}
                         {currentPermiso && (
                             <>
                                 <Form.Group className="mb-3" controlId="editPermisoNombre">
-                                    <Form.Label>Nombre del Permiso</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre del Permiso</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faKey} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faKey} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Control
                                             type="text"
                                             name="nombre"
                                             value={editFormData.nombre}
                                             onChange={handleEditFormChange}
                                             required
+                                            className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                         />
                                     </InputGroup>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editPermisoDescripcion">
-                                    <Form.Label>Descripción</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Descripción</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faAlignLeft} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faAlignLeft} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Control
                                             as="textarea"
                                             name="descripcion"
                                             value={editFormData.descripcion}
                                             onChange={handleEditFormChange}
                                             rows={2}
+                                            className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                         />
                                     </InputGroup>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editPermisoRol">
-                                    <Form.Label>Rol Asociado</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Rol Asociado</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Select
                                             name="rol"
                                             value={editFormData.rol}
                                             onChange={handleEditFormChange}
                                             required
+                                            className="form-select-light" // <<-- AÑADIDO: Clase de estilo
                                         >
                                             <option value="">Selecciona un Rol</option>
                                             {roles.map(rol => (
@@ -409,12 +445,12 @@ const PermisosPage = () => {
                             </>
                         )}
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                    <Modal.Footer className="modal-footer-light"> {/* <<-- AÑADIDO: Clase de estilo */}
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)} className="btn-close-modal"> {/* <<-- AÑADIDO: Clase de estilo */}
                             <FontAwesomeIcon icon={faTimes} className="me-2" />
                             Cancelar
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading} className="btn-save-modal"> {/* <<-- AÑADIDO: Clase de estilo */}
                             {loading ? (
                                 <>
                                     <FontAwesomeIcon icon={faSpinner} spin className="me-2" />

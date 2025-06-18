@@ -1,341 +1,169 @@
-/* POSPage.css */
+/* Estilos para AgregarProductoPage.js */
 
-.pos-container {
-    display: grid;
-    grid-template-columns: 2fr 1fr; /* Dos columnas: productos a la izquierda, carrito/controles a la derecha */
-    gap: 20px;
+/* --- Contenedor Principal de la Página --- */
+.add-product-page {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    background-color: #ffffff; /* Fondo blanco global */
+    color: #000000; /* Texto principal en negro */
+}
+
+/* --- Tarjeta Principal del Formulario --- */
+.add-product-card {
+    background-color: #ffffff !important; /* Fondo blanco para la tarjeta */
+    border: 1px solid #e0e0e0 !important; /* Borde gris muy suave */
+    border-radius: 12px; /* Bordes redondeados */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Sombra suave para destacar */
+    max-width: 900px; /* Ancho máximo para centrar el formulario */
+    margin: 0 auto; /* Centrar la tarjeta */
     padding: 20px;
-    max-width: 1200px;
-    margin: 20px auto;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.pos-section {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.add-product-card-title {
+    color: #000000 !important; /* Título de la tarjeta en negro */
+    font-weight: bold;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Separador sutil */
+    text-align: center;
+    font-size: 1.8rem;
 }
 
-.pos-section h2 {
-    color: #343a40;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 10px;
+/* --- Estilos para los campos de Formulario (inputs, selects, textarea) --- */
+.form-label {
+    color: #333333; /* Etiquetas de formulario en gris oscuro para contraste */
+    font-weight: 500;
+    margin-bottom: 5px;
 }
 
-/* --- Mensajes Globales --- */
-.global-message {
+.form-control-light,
+.form-select-light {
+    background-color: #f8f9fa !important; /* Fondo muy claro para inputs/selects */
+    border: 1px solid #ced4da !important; /* Borde gris estándar de Bootstrap */
+    color: #333333 !important; /* Texto negro/gris oscuro */
+    border-radius: 8px; /* Bordes redondeados */
     padding: 10px 15px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.global-message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.global-message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.global-message.info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
-
-
-/* --- Campos de Búsqueda y Selección --- */
-.search-input,
-.select-input {
-    width: calc(100% - 20px);
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
     font-size: 1rem;
+    transition: all 0.3s ease-in-out;
 }
 
-.control-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #495057;
+.form-control-light::placeholder {
+    color: #888888; /* Color del placeholder */
+    opacity: 1; /* Asegura que el placeholder sea visible */
 }
 
-/* --- Lista de Productos --- */
-.product-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 15px;
-    max-height: 500px; /* Limita la altura y permite scroll */
-    overflow-y: auto;
-    padding-right: 5px; /* Espacio para la scrollbar */
+.form-control-light:focus,
+.form-select-light:focus {
+    border-color: #00b45c !important; /* Borde verde al enfocar */
+    box-shadow: 0 0 0 0.25rem rgba(0, 180, 92, 0.25) !important; /* Sombra de enfoque verde */
+    background-color: #ffffff !important; /* Fondo blanco al enfocar */
 }
 
-.product-card {
-    border: 1px solid #e0e0e0;
+/* Estilos para el InputGroup.Text (el símbolo $) */
+.input-group-text-light {
+    background-color: #e9ecef !important; /* Fondo gris claro */
+    border: 1px solid #ced4da !important;
+    color: #495057 !important; /* Texto gris oscuro */
+    border-radius: 8px 0 0 8px; /* Bordes solo a la izquierda */
+}
+
+/* Estilo para el checkbox "Activo" */
+.form-check-light .form-check-input:checked {
+    background-color: #00b45c !important; /* Fondo verde cuando está marcado */
+    border-color: #00b45c !important;
+}
+.form-check-light .form-check-label {
+    color: #333333; /* Color de la etiqueta del checkbox */
+}
+
+/* --- Previsualización de Imagen --- */
+.image-preview-container {
+    border: 1px solid #e0e0e0; /* Borde suave */
     border-radius: 8px;
     padding: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    background-color: #fefefe;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease-in-out;
-}
-
-.product-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-}
-
-.product-image {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.product-info h3 {
-    font-size: 1.1rem;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.product-info p {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 3px;
-}
-
-.add-to-cart-button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background-color 0.2s;
-    width: 100%;
-}
-
-.add-to-cart-button:hover:not(:disabled) {
-    background-color: #218838;
-}
-
-.add-to-cart-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* --- Carrito de Compras --- */
-.cart-item-list {
-    max-height: 350px; /* Limita la altura y permite scroll */
-    overflow-y: auto;
-    padding-right: 5px;
-    margin-bottom: 20px;
-}
-
-.cart-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px dashed #e9ecef;
-}
-
-.cart-item:last-child {
-    border-bottom: none;
-}
-
-.cart-item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 15px;
-}
-
-.cart-item .item-info {
-    flex-grow: 1;
-}
-
-.cart-item .item-info h3 {
-    font-size: 1rem;
-    margin-bottom: 5px;
-}
-
-.cart-item .item-info p {
-    font-size: 0.85rem;
-    color: #555;
-    margin-bottom: 2px;
-}
-
-.item-quantity-controls {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.item-quantity-controls button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.item-quantity-controls button:hover {
-    background-color: #0056b3;
-}
-
-.item-quantity-controls span {
-    font-weight: bold;
-    padding: 0 5px;
-}
-
-.remove-button {
-    background-color: #dc3545 !important; /* Override other button styles */
-    margin-left: 10px;
-}
-
-.remove-button:hover {
-    background-color: #c82333 !important;
-}
-
-.cart-summary {
-    text-align: right;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #343a40;
-    padding-top: 15px;
-    border-top: 2px solid #e9ecef;
-}
-
-.empty-cart-message {
-    text-align: center;
-    color: #6c757d;
-    font-style: italic;
-    padding: 20px;
-}
-
-/* --- Botones de Acción --- */
-.action-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    gap: 10px;
-}
-
-.clear-cart-button,
-.process-sale-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-weight: bold;
-    flex: 1; /* Para que ocupen el espacio disponible */
-}
-
-.clear-cart-button {
-    background-color: #6c757d;
-    color: white;
-}
-
-.clear-cart-button:hover:not(:disabled) {
-    background-color: #5a6268;
-}
-
-.process-sale-button {
-    background-color: #007bff;
-    color: white;
-}
-
-.process-sale-button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-.clear-cart-button:disabled,
-.process-sale-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* --- Modal --- */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: #f8f9fa; /* Fondo muy claro */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    height: 170px; /* Altura fija para el contenedor */
+    overflow: hidden;
+    margin-bottom: 1rem;
 }
 
-.modal-content {
-    background-color: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    position: relative;
-}
-
-.modal-content h3 {
-    color: #28a745;
-    margin-bottom: 15px;
-}
-
-.modal-content p {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
-    color: #343a40;
-}
-
-.close-modal-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
+.image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Asegura que la imagen se vea completa */
     border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-    font-size: 1rem;
 }
 
-.close-modal-button:hover {
-    background-color: #0056b3;
+/* --- Botón de Enviar --- */
+.btn-add-product-submit {
+    background-color: #00b45c !important; /* Fondo verde */
+    border-color: #00b45c !important;
+    color: #ffffff !important; /* Texto blanco */
+    font-weight: bold;
+    padding: 12px 25px;
+    border-radius: 50rem; /* Forma de píldora */
+    box-shadow: 0 4px 8px rgba(0, 180, 92, 0.3); /* Sombra verde */
+    transition: all 0.3s ease;
+    display: block; /* Ocupa todo el ancho */
+    width: 100%; /* Ocupa todo el ancho */
+    max-width: 300px; /* Limita el ancho en pantallas grandes */
+    margin: 25px auto 0 auto; /* Centrar horizontalmente y margen superior */
 }
 
-/* Responsive adjustments */
+.btn-add-product-submit:hover {
+    background-color: #008a4d !important; /* Verde más oscuro al pasar el mouse */
+    border-color: #008a4d !important;
+    box-shadow: 0 6px 12px rgba(0, 180, 92, 0.4);
+}
+
+/* --- Mensajes de Error (Alert) --- */
+.add-product-page .alert-danger {
+    background-color: #f8d7da; /* Fondo rojo claro de Bootstrap */
+    border-color: #f5c6cb;
+    color: #721c24; /* Texto rojo oscuro */
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* --- Responsive Adjustments --- */
 @media (max-width: 768px) {
-    .pos-container {
-        grid-template-columns: 1fr; /* Stack columns on small screens */
+    .add-product-page {
+        padding: 15px;
     }
-    .product-list {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+
+    .add-product-card {
+        padding: 15px;
     }
-    .action-buttons {
-        flex-direction: column;
+
+    .add-product-card-title {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+    }
+
+    .form-control-light,
+    .form-select-light {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+
+    .input-group-text-light {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+
+    .image-preview-container {
+        height: 120px;
+    }
+
+    .btn-add-product-submit {
+        font-size: 0.95rem;
+        padding: 10px 20px;
+        max-width: 100%; /* Ocupa todo el ancho en móviles */
     }
 }

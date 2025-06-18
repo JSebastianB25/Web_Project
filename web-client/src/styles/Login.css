@@ -1,0 +1,114 @@
+/* --- Estilos para LoginPage.js --- */
+
+.login-page-background {
+  background: linear-gradient(135deg, #007bff, #00c6ff); /* Degradado azul */
+  min-height: 100vh; /* Asegura que ocupe toda la altura de la vista */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  background-color: rgba(255, 255, 255, 0.95); /* Fondo blanco semitransparente */
+  border-radius: 15px; /* Bordes más redondeados */
+  border: none; /* Sin borde de Bootstrap por defecto */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
+  max-width: 450px; /* Ancho máximo para la tarjeta */
+  width: 90%; /* Ancho responsivo */
+  overflow: hidden; /* Asegura que las esquinas redondeadas se vean bien */
+  transition: all 0.3s ease-in-out; /* Transición para efectos de hover */
+}
+
+/* Efecto de hover en la tarjeta (opcional) */
+.login-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.login-icon {
+  font-size: 4rem; /* Tamaño del icono */
+  color: #007bff; /* Color azul de Bootstrap */
+  animation: pulse 2s infinite; /* Pequeña animación de pulso para el icono */
+}
+
+/* Animación de pulso para el icono */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.login-card-title {
+  font-size: 2.2rem; /* Tamaño de fuente más grande */
+  color: #212529; /* Color oscuro para el título */
+}
+
+/* Estilos para los campos de formulario */
+.form-group-animated .form-control {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 0.8rem 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group-animated .form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+/* Estilos del botón de login */
+.login-button {
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-button:hover:not(:disabled) {
+  background-color: #0056b3; /* Azul más oscuro al pasar el mouse */
+  transform: translateY(-2px); /* Pequeño levantamiento */
+}
+
+.login-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Media Queries para responsividad (ajustes finos para pantallas pequeñas) */
+@media (max-width: 576px) {
+  .login-card {
+    margin: 15px; /* Pequeño margen en pantallas muy pequeñas */
+    padding: 20px !important; /* Ajuste el padding */
+  }
+  .login-card-title {
+    font-size: 1.8rem;
+  }
+  .login-icon {
+    font-size: 3rem;
+  }
+}
+/* src/index.css o src/App.css */
+
+:root {
+  --primary-color: #00b45c; /* Nuestro verde */
+  --secondary-color: #000000; /* Negro */
+  --background-light: #ffffff; /* Blanco para fondos claros/cards */
+  --text-color: #000000; /* Texto oscuro */
+  --text-light-color: #ffffff; /* Texto claro */
+}
+
+/* Si quieres reemplazar colores por defecto de Bootstrap globalmente */
+/* Esto puede requerir sobrescribir variables Sass de Bootstrap si lo importas como Sass */
+.btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--text-light-color) !important;
+}
+
+body {
+  background-color: var(--secondary-color); /* Para el fondo general si no lo seteas en Container */
+  color: var(--text-color);
+}
+
+/* ... otros estilos ... */

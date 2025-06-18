@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 # Application definition
 
@@ -55,7 +56,45 @@ INSTALLED_APPS = [
     'sales',       # ¡Nueva app!
     'users',       # ¡Nueva app!
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # Por ahora no pondremos permisos por defecto para simplificar
+    # 'DEFAULT_PERMISSION_CLASSES': (
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ),
+}
 
+# Configuración de JWT
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # Token de acceso dura 5 minutos
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),    # Token de refresco dura 1 día
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": "TU_CLAVE_SECRETA_MUY_LARGA_Y_COMPLEJA_AQUI", # <--- ¡CAMBIA ESTO POR UNA CLAVE SEGURA!
+    "VERIFYING_KEY": "",
+    "AUDIENCE": None,
+    "ISSUER": None,
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id", # Campo que usa tu modelo Usuario para el ID
+    "USER_ID_CLAIM": "user_id",
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+
+    "JTI_CLAIM": "jti",
+}
+
+# MUY IMPORTANTE: Dile a Django que use tu modelo 'Usuario' para autenticación
+AUTH_USER_MODEL = 'users.Usuario'
 
 
 MIDDLEWARE = [

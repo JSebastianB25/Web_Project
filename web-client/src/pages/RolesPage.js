@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    Modal, InputGroup, Card
+    Modal, InputGroup, Card, Alert // <<-- AÑADIDO: Alert para consistencia en mensajes de error
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faUserTag } from '@fortawesome/free-solid-svg-icons'; // faUserTag para roles
+import { faPlus, faEdit, faTrash, faSpinner, faInfoCircle, faSave, faTimes, faUserTag, faUsers } from '@fortawesome/free-solid-svg-icons'; // <<-- AÑADIDO: faUsers para el título de la página
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// Importa tus estilos personalizados para esta página
+import '../styles/RolesPage.css'; // <<-- NUEVO ARCHIVO CSS
 
 // Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -120,11 +123,11 @@ const RolesPage = () => {
     const handleDeleteClick = async (rolId) => {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
+            text: "¡No podrás revertir esto! Si este rol tiene usuarios o permisos asociados, no podrá ser eliminado.", // <<-- MENSAJE CLARO
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#d33', // <<-- CAMBIADO: Rojo para eliminar
+            cancelButtonColor: '#6c757d', // <<-- CAMBIADO: Gris para cancelar
             confirmButtonText: 'Sí, eliminarlo!',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
@@ -139,9 +142,25 @@ const RolesPage = () => {
                     }
                 } catch (err) {
                     console.error('Error al eliminar rol:', err.response ? err.response.data : err);
-                    const errorMessage = err.response && err.response.data
-                        ? Object.values(err.response.data).flat().join(' ')
-                        : 'Ocurrió un error al eliminar el rol.';
+                    let errorMessage = 'Ocurrió un error al eliminar el rol.';
+                    // <<-- AÑADIDO: Manejo de error específico para restricción de clave foránea
+                    if (err.response && err.response.status === 400) { // Bad Request, puede contener mensaje específico
+                        const errorData = err.response.data;
+                        if (errorData.detail && (errorData.detail.includes('Cannot delete') || errorData.detail.includes('foreign key constraint'))) {
+                            errorMessage = 'No es posible eliminar el rol porque tiene usuarios o permisos asociados.';
+                        } else if (Object.values(errorData).flat().some(msg =>
+                            String(msg).includes('usuarios asociados') || String(msg).includes('permisos asociados') || String(msg).includes('referenced by other objects') || String(msg).includes('constraint failed')
+                        )) {
+                             errorMessage = 'No es posible eliminar el rol porque tiene usuarios o permisos asociados.';
+                        } else {
+                            errorMessage = Object.values(errorData).flat().join(' ');
+                        }
+                    } else if (err.response && err.response.status === 409) { // Posible conflicto
+                        errorMessage = 'No es posible eliminar el rol porque tiene usuarios o permisos asociados.';
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Error de conexión. Asegúrate de que el servidor esté funcionando.';
+                    }
+                    // <<-- FIN AÑADIDO
                     setError(errorMessage);
                     Swal.fire('Error', errorMessage, 'error');
                 } finally {
@@ -152,14 +171,24 @@ const RolesPage = () => {
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Gestión de Roles</h2>
+        <Container
+            fluid // <<-- AÑADIDO: Para que ocupe todo el ancho
+            className="roles-page p-4" // <<-- AÑADIDO: Clase para estilos base
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+                backgroundColor: '#ffffff', // Fondo blanco para la página
+                color: '#000000' // Texto negro por defecto
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faUsers} className="me-3" /> Gestión de Roles
+            </h2>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && <Alert variant="danger" className="text-center roles-alert-error">{error}</Alert>} {/* <<-- AÑADIDO: Clase para estilo de alerta */}
 
             {/* Formulario para Agregar Nuevo Rol */}
-            <Card className="mb-4 shadow-sm">
-                <Card.Header className="bg-primary text-white">
+            <Card className="mb-4 shadow-sm roles-card"> {/* <<-- AÑADIDO: Clase para estilo de tarjeta */}
+                <Card.Header className="roles-card-header-add"> {/* <<-- AÑADIDO: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faPlus} className="me-2" />
                         Agregar Nuevo Rol
@@ -170,9 +199,9 @@ const RolesPage = () => {
                         <Row className="g-3 justify-content-center">
                             <Col md={6}>
                                 <Form.Group controlId="newRolNombre">
-                                    <Form.Label>Nombre del Rol</Form.Label>
+                                    <Form.Label style={{color: '#000000'}}>Nombre del Rol</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                     <InputGroup>
-                                        <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                        <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                         <Form.Control
                                             type="text"
                                             name="nombre"
@@ -180,12 +209,13 @@ const RolesPage = () => {
                                             onChange={handleNewNombreChange}
                                             placeholder="Ej: Administrador, Vendedor, Cliente"
                                             required
+                                            className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                         />
                                     </InputGroup>
                                 </Form.Group>
                             </Col>
-                            <Col xs={12} className="text-center">
-                                <Button variant="success" type="submit" disabled={loading}>
+                            <Col xs={12} className="text-end">
+                                <Button variant="success" type="submit" disabled={loading} className="btn-add-submit"> {/* <<-- AÑADIDO: Clase de estilo */}
                                     {loading ? (
                                         <>
                                             <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
@@ -205,8 +235,8 @@ const RolesPage = () => {
             </Card>
 
             {/* Lista de Roles */}
-            <Card className="shadow-sm">
-                <Card.Header className="bg-info text-white">
+            <Card className="shadow-sm roles-card"> {/* <<-- AÑADIDO: Clase para estilo de tarjeta */}
+                <Card.Header className="roles-card-header-list"> {/* <<-- AÑADIDO: Clase para el header de la tarjeta */}
                     <h5 className="mb-0">
                         <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
                         Roles Existentes
@@ -215,20 +245,20 @@ const RolesPage = () => {
                 <Card.Body>
                     {loading && (
                         <div className="text-center my-3">
-                            <Spinner animation="border" role="status">
+                            <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* <<-- AÑADIDO: Color del spinner */}
                                 <span className="visually-hidden">Cargando roles...</span>
                             </Spinner>
-                            <p className="mt-2">Cargando roles...</p>
+                            <p className="mt-2" style={{ color: '#000000'}}>Cargando roles...</p> {/* <<-- AÑADIDO: Color del texto */}
                         </div>
                     )}
                     {!loading && roles.length === 0 && (
-                        <div className="alert alert-info text-center mt-3">
+                        <Alert variant="info" className="text-center mt-3 roles-alert-info"> {/* <<-- AÑADIDO: Clase para estilo de alerta */}
                             No hay roles registrados aún.
-                        </div>
+                        </Alert>
                     )}
                     {!loading && roles.length > 0 && (
-                        <div className="table-responsive">
-                            <Table striped bordered hover className="mt-3">
+                        <div className="table-responsive roles-table-wrapper"> {/* <<-- AÑADIDO: Clase para estilo de tabla */}
+                            <Table striped hover className="mt-3 roles-table-light"> {/* <<-- AÑADIDO: Clase para estilo de tabla */}
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -241,11 +271,11 @@ const RolesPage = () => {
                                         <tr key={rol.id}>
                                             <td>{rol.id}</td>
                                             <td>{rol.nombre}</td>
-                                            <td className="text-center">
+                                            <td className="text-center d-flex justify-content-center gap-2"> {/* <<-- AÑADIDO: Usar gap-2 para espacio */}
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="me-2"
+                                                    className="btn-action-edit" // <<-- AÑADIDO: Clase de estilo
                                                     onClick={() => handleEditClick(rol)}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} /> Editar
@@ -253,6 +283,7 @@ const RolesPage = () => {
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
+                                                    className="btn-action-delete" // <<-- AÑADIDO: Clase de estilo
                                                     onClick={() => handleDeleteClick(rol.id)}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} /> Eliminar
@@ -269,36 +300,37 @@ const RolesPage = () => {
 
             {/* Modal de Edición de Rol */}
             <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-                <Modal.Header closeButton className="bg-warning text-white">
-                    <Modal.Title>
+                <Modal.Header closeButton className="modal-header-light"> {/* <<-- AÑADIDO: Clase de estilo */}
+                    <Modal.Title className="modal-title-light"> {/* <<-- AÑADIDO: Clase de estilo */}
                         <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Editar Rol
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="modal-body-light"> {/* <<-- AÑADIDO: Clase de estilo */}
                         {currentRol && (
                             <Form.Group className="mb-3" controlId="editRolNombre">
-                                <Form.Label>Nombre del Rol</Form.Label>
+                                <Form.Label style={{color: '#000000'}}>Nombre del Rol</Form.Label> {/* <<-- AÑADIDO: Color negro */}
                                 <InputGroup>
-                                    <InputGroup.Text><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text>
+                                    <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- AÑADIDO: Clase de estilo */}
                                     <Form.Control
                                         type="text"
                                         name="nombre"
                                         value={editFormData.nombre}
                                         onChange={handleEditFormChange}
                                         required
+                                        className="form-control-light" // <<-- AÑADIDO: Clase de estilo
                                     />
                                 </InputGroup>
                             </Form.Group>
                         )}
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                    <Modal.Footer className="modal-footer-light"> {/* <<-- AÑADIDO: Clase de estilo */}
+                        <Button variant="secondary" onClick={() => setShowEditModal(false)} className="btn-close-modal"> {/* <<-- AÑADIDO: Clase de estilo */}
                             <FontAwesomeIcon icon={faTimes} className="me-2" />
                             Cancelar
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading} className="btn-save-modal"> {/* <<-- AÑADIDO: Clase de estilo */}
                             {loading ? (
                                 <>
                                     <FontAwesomeIcon icon={faSpinner} spin className="me-2" />

@@ -1,18 +1,24 @@
 // web-client/src/pages/ProductosPage.js
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Form, InputGroup, Button, Spinner } from 'react-bootstrap';
+import { 
+    Container, Row, Col, Card, Form, InputGroup, Button, Spinner,
+    Alert // Agregado: Alert para mensajes de estado
+} from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTimes, faInfoCircle } from '@fortawesome/free-solid-svg-icons'; // Eliminamos faFilter
+import { 
+    faSearch, faTimes, faInfoCircle, // Eliminamos faFilter
+    faBoxesStacked // Agregado: Nuevo icono para el título de la página
+} from '@fortawesome/free-solid-svg-icons'; 
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// Importa tus estilos personalizados para esta página
+import '../styles/ProductosPage.css'; // Nuevo archivo CSS
 
 // Define tus URLs de API
 const API_BASE_URL = 'http://localhost:8000/api';
 const API_PRODUCTOS_URL = `${API_BASE_URL}/productos/`;
-// Ya no necesitamos las URLs de proveedores y categorías aquí si no vamos a filtrarlas
-// const API_PROVEEDORES_URL = `${API_BASE_URL}/proveedores/`;
-// const API_CATEGORIAS_URL = `${API_BASE_URL}/categorias/`;
 
 const ProductosPage = () => {
     const [products, setProducts] = useState([]);
@@ -21,12 +27,6 @@ const ProductosPage = () => {
 
     // Estado para la barra de búsqueda
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Eliminamos los estados para proveedores y categorías, ya no los necesitamos en esta UI
-    // const [selectedProveedor, setSelectedProveedor] = useState('');
-    // const [selectedCategoria, setSelectedCategoria] = useState('');
-    // const [providers, setProviders] = useState([]);
-    // const [categories, setCategories] = useState([]);
 
     // Función para cargar productos
     const fetchProducts = useCallback(async () => {
@@ -59,27 +59,6 @@ const ProductosPage = () => {
         }
     }, [searchTerm]); // La dependencia ahora es solo searchTerm
 
-    // Eliminamos el useEffect para cargar proveedores y categorías, ya no es necesario
-    /*
-    useEffect(() => {
-        const fetchRelatedData = async () => {
-            try {
-                const [providersRes, categoriesRes] = await Promise.all([
-                    axios.get(API_PROVEEDORES_URL),
-                    axios.get(API_CATEGORIAS_URL),
-                ]);
-                setProviders(providersRes.data);
-                setCategories(categoriesRes.data);
-                console.log('Proveedores cargados para filtros:', providersRes.data);
-                console.log('Categorías cargadas para filtros:', categoriesRes.data);
-            } catch (err) {
-                console.error('Error al cargar listas relacionadas para filtros:', err);
-            }
-        };
-        fetchRelatedData();
-    }, []);
-    */
-
     // Ejecutar fetchProducts cuando cambian las dependencias
     useEffect(() => {
         fetchProducts();
@@ -89,79 +68,92 @@ const ProductosPage = () => {
     const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
     // Manejador para limpiar la barra de búsqueda
-    const handleClearSearch = () => { // Renombrado de handleClearFilters
+    const handleClearSearch = () => { 
         setSearchTerm('');
-        // Ya no hay filtros de proveedor/categoría que limpiar
     };
 
     return (
-        <Container className="mt-4">
-            <h2 className="mb-4 text-center">Todos los Productos</h2>
+        <Container 
+            fluid // Asegura que ocupe todo el ancho
+            className="productos-page p-4" // Clase para estilos base
+            style={{
+                minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+                backgroundColor: '#ffffff', // Fondo blanco para la página
+                color: '#000000' // Texto negro por defecto
+            }}
+        >
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+                <FontAwesomeIcon icon={faBoxesStacked} className="me-3" /> Todos los Productos
+            </h2>
 
             {/* Sección de Búsqueda */}
             <Row className="mb-4 justify-content-center">
                 <Col md={8}>
-                    <InputGroup className="mb-3">
-                        <Form.Control
-                            type="text"
-                            placeholder="Buscar por referencia, nombre o descripción..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                        <Button variant="outline-secondary" onClick={fetchProducts}>
-                            <FontAwesomeIcon icon={faSearch} />
-                        </Button>
-                        {searchTerm && ( // Solo muestra el botón limpiar si hay algo en la búsqueda
-                            <Button variant="outline-danger" onClick={handleClearSearch} title="Limpiar Búsqueda">
-                                <FontAwesomeIcon icon={faTimes} />
-                            </Button>
-                        )}
-                    </InputGroup>
+                    <Card className="shadow-sm productos-search-card"> {/* Nueva clase para la tarjeta de búsqueda */}
+                        <Card.Body className="d-flex align-items-center">
+                            <InputGroup>
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Buscar por referencia, nombre o descripción..."
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    className="form-control-light" // Clase de estilo
+                                />
+                                <Button variant="primary" onClick={fetchProducts} className="btn-search-product"> {/* Clase de estilo */}
+                                    <FontAwesomeIcon icon={faSearch} />
+                                </Button>
+                                {searchTerm && ( // Solo muestra el botón limpiar si hay algo en la búsqueda
+                                    <Button variant="outline-danger" onClick={handleClearSearch} title="Limpiar Búsqueda" className="btn-clear-search"> {/* Clase de estilo */}
+                                        <FontAwesomeIcon icon={faTimes} />
+                                    </Button>
+                                )}
+                            </InputGroup>
+                        </Card.Body>
+                    </Card>
                 </Col>
             </Row>
-            {/* Eliminamos las filas de filtros de proveedor y categoría */}
-            {/* <Row className="mb-4 justify-content-center"> ... </Row> */}
 
             {/* Mensajes de estado */}
             {loading && (
                 <div className="text-center my-4">
-                    <Spinner animation="border" role="status">
+                    <Spinner animation="border" role="status" style={{ color: '#00b45c' }}> {/* Color del spinner */}
                         <span className="visually-hidden">Cargando productos...</span>
                     </Spinner>
-                    <p>Cargando productos...</p>
+                    <p className="mt-2" style={{ color: '#000000'}}>Cargando productos...</p> {/* Color del texto */}
                 </div>
             )}
             {error && (
-                <div className="alert alert-danger text-center">
+                <Alert variant="danger" className="text-center productos-alert-error"> {/* Clase de estilo */}
                     <FontAwesomeIcon icon={faInfoCircle} className="me-2" /> {error}
-                </div>
+                </Alert>
             )}
             {!loading && !error && products.length === 0 && (
-                <div className="alert alert-info text-center">
+                <Alert variant="info" className="text-center productos-alert-info"> {/* Clase de estilo */}
                     <FontAwesomeIcon icon={faInfoCircle} className="me-2" /> No se encontraron productos con los criterios de búsqueda.
-                </div>
+                </Alert>
             )}
 
             {/* Listado de Productos en Cards */}
             {!loading && !error && products.length > 0 && (
-                <Row xs={1} md={2} lg={3} className="g-4">
+                <Row xs={1} md={2} lg={3} xl={4} className="g-4"> {/* Ajuste para más columnas en pantallas grandes */}
                     {products.map(product => (
                         <Col key={product.referencia_producto}>
-                            <Card className="h-100 shadow-sm border-0">
+                            <Card className="h-100 shadow-sm productos-card"> {/* Nueva clase para la tarjeta de producto */}
                                 <Card.Img
                                     variant="top"
-                                    src={product.imagen || 'https://via.placeholder.com/150'}
+                                    src={product.imagen || 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'} // Fallback mejorado
                                     alt={product.nombre}
-                                    style={{ height: '200px', objectFit: 'contain', padding: '10px' }}
+                                    className="productos-card-img" // Nueva clase para la imagen
+                                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'; }} // Fallback en error
                                 />
-                                <Card.Body className="d-flex flex-column">
-                                    <Card.Title className="fw-bold text-truncate" title={product.nombre}>
+                                <Card.Body className="d-flex flex-column productos-card-body"> {/* Nueva clase */}
+                                    <Card.Title className="fw-bold text-truncate productos-card-title" title={product.nombre}>
                                         {product.nombre}
                                     </Card.Title>
-                                    <Card.Text className="text-muted small mb-2">
+                                    <Card.Text className="text-muted small mb-2 productos-card-ref"> {/* Nueva clase */}
                                         Ref: {product.referencia_producto}
                                     </Card.Text>
-                                    <Card.Text className="flex-grow-1">
+                                    <Card.Text className="flex-grow-1 productos-card-details"> {/* Nueva clase */}
                                         <strong>Precio Venta:</strong> ${parseFloat(product.precio_sugerido_venta).toLocaleString('es-CO')}<br />
                                         <strong>Stock:</strong> {product.stock}<br />
                                         <strong>Proveedor:</strong> {product.proveedor_nombre || 'N/A'}<br />

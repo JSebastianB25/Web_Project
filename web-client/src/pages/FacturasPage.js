@@ -2,17 +2,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSearch, faEye, faDollarSign, faTrash
+  faSearch, faEye, faDollarSign, faTrash, faFileInvoice // Añadido faFileInvoice para el título
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { Container, Row, Col, Card, Form, InputGroup, Button, Table, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, InputGroup, Button, Table, Modal, Spinner, Alert } from 'react-bootstrap'; // Añadido Spinner y Alert
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
 
+// Importa tus estilos personalizados para esta página
+import '../styles/FacturasPage.css';
+
 const API_BASE_URL = 'http://localhost:8000/api';
 const API_FACTURAS_URL = `${API_BASE_URL}/facturas/`;
+
+// Función de utilidad para formatear moneda (Copiada de POSPage.js para consistencia)
+const formatCurrency = (value) => {
+    if (value === null || value === undefined) return 'N/A';
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return 'N/A';
+
+    return new Intl.NumberFormat('es-CO', { // Ajusta la configuración regional si es necesario
+        style: 'currency',
+        currency: 'COP', // Cambia a tu moneda (ej: 'USD', 'EUR')
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(numValue);
+};
+
 
 const FacturasPage = () => {
   const [facturas, setFacturas] = useState([]);
@@ -30,36 +48,27 @@ const FacturasPage = () => {
     setError(null);
     try {
       const params = new URLSearchParams();
-      // Si hay un término de búsqueda, lo añade
       if (searchTerm) {
         params.append('search', searchTerm);
       }
-      // Filtrar por rango de fechas
       if (searchDateStart) {
-        // Asegúrate de que la fecha se formateé correctamente al inicio del día para 'gte'
         params.append('fecha__gte', format(searchDateStart, "yyyy-MM-dd'T'00:00:00"));
       }
       if (searchDateEnd) {
-        // Asegúrate de que la fecha se formateé correctamente al final del día para 'lte'
         params.append('fecha__lte', format(searchDateEnd, "yyyy-MM-dd'T'23:59:59"));
       }
 
-      // Construir la URL completa con los parámetros
-      // === CAMBIO CLAVE AQUÍ: REMOVIDO EL 'limit=5' ===
       const url = `${API_FACTURAS_URL}?${params.toString()}`;
-      console.log("Fetching URL:", url); // ¡Útil para depurar!
+      console.log("Fetching URL:", url);
       const response = await axios.get(url);
       
-      // Accede a 'results' de la respuesta paginada (si tu backend pagina por defecto)
-      // O usa response.data directamente si el backend NO pagina por defecto para esta URL sin 'limit'
-      // La mayoría de los backends DRF paginan por defecto, así que 'results' es la opción más segura.
       setFacturas(response.data.results || []); 
 
     } catch (err) {
       console.error('Error fetching invoices:', err.response ? err.response.data : err.message);
       setError('Error al cargar las facturas.');
       Swal.fire('Error', `No se pudieron cargar el historial de facturas. Detalles: ${err.response?.data?.detail || err.message}`, 'error');
-      setFacturas([]); // Asegura que 'facturas' sea un array vacío en caso de error
+      setFacturas([]);
     } finally {
       setLoading(false);
     }
@@ -117,11 +126,23 @@ const FacturasPage = () => {
   };
 
   return (
-    <Container fluid className="facturas-page p-3">
-      <h2 className="mb-4">Historial de Facturas</h2>
+    <Container 
+        fluid 
+        className="facturas-page p-4"
+        style={{
+            minHeight: 'calc(100vh - 56px)', // Ajusta a la altura de tu Navbar
+            backgroundColor: '#ffffff', // Fondo blanco para la página
+            color: '#000000' // Texto negro por defecto
+        }}
+    >
+      <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
+        <FontAwesomeIcon icon={faFileInvoice} className="me-3" /> Historial de Facturas
+      </h2>
 
-      <Card className="mb-4">
-        <Card.Header>Buscador de Facturas</Card.Header>
+      {error && <Alert variant="danger" className="text-center">{error}</Alert>}
+
+      <Card className="facturas-card mb-4">
+        <Card.Header className="facturas-card-header">Buscador de Facturas</Card.Header>
         <Card.Body>
           <Row>
             <Col md={6}>
@@ -138,8 +159,9 @@ const FacturasPage = () => {
                         handleSearch();
                       }
                     }}
+                    className="form-control-light" // Clase para input claro
                   />
-                  <Button variant="outline-secondary" onClick={handleSearch}>
+                  <Button variant="outline-secondary" onClick={handleSearch} className="btn-search">
                     <FontAwesomeIcon icon={faSearch} />
                   </Button>
                 </InputGroup>
@@ -155,9 +177,10 @@ const FacturasPage = () => {
                   startDate={searchDateStart}
                   endDate={searchDateEnd}
                   placeholderText="Fecha inicio"
-                  className="form-control"
+                  className="form-control form-control-light" // Clases para input claro
                   dateFormat="dd/MM/yyyy"
                   isClearable
+                  wrapperClassName="date-picker-wrapper" // Para aplicar estilos al wrapper
                 />
               </Form.Group>
             </Col>
@@ -172,19 +195,20 @@ const FacturasPage = () => {
                   endDate={searchDateEnd}
                   minDate={searchDateStart}
                   placeholderText="Fecha fin"
-                  className="form-control"
+                  className="form-control form-control-light" // Clases para input claro
                   dateFormat="dd/MM/yyyy"
                   isClearable
+                  wrapperClassName="date-picker-wrapper" // Para aplicar estilos al wrapper
                 />
               </Form.Group>
             </Col>
           </Row>
           <Row className="mt-3">
-            <Col className="d-flex justify-content-end">
-              <Button variant="secondary" onClick={handleClearSearch} className="me-2">
+            <Col className="d-flex justify-content-end gap-2"> {/* gap-2 para espacio entre botones */}
+              <Button variant="secondary" onClick={handleClearSearch} className="btn-clear-filters">
                 Limpiar Filtros
               </Button>
-              <Button variant="primary" onClick={handleSearch}>
+              <Button variant="primary" onClick={handleSearch} className="btn-search-main">
                 <FontAwesomeIcon icon={faSearch} className="me-2" /> Buscar
               </Button>
             </Col>
@@ -192,27 +216,32 @@ const FacturasPage = () => {
         </Card.Body>
       </Card>
 
-      <Card>
-        <Card.Header>Facturas</Card.Header>
+      <Card className="facturas-card">
+        <Card.Header className="facturas-card-header">Facturas</Card.Header>
         <Card.Body>
           {loading ?
           (
-            <p>Cargando facturas...</p>
+            <div className="text-center my-5">
+                <Spinner animation="border" role="status" style={{ color: '#00b45c' }}>
+                    <span className="visually-hidden">Cargando...</span>
+                </Spinner>
+                <p className="mt-2" style={{ color: '#000000' }}>Cargando facturas...</p>
+            </div>
           ) : error ?
           (
-            <p className="text-danger">{error}</p>
+            <p className="text-danger text-center">{error}</p>
           ) : facturas.length === 0 ?
           (
-            <p>No se encontraron facturas.</p>
+            <p className="text-muted text-center">No se encontraron facturas.</p>
           ) : (
             <div className="table-responsive">
-              <Table striped bordered hover className="mt-3">
+              <Table striped hover className="facturas-table-light"> {/* Nueva clase para tabla clara */}
                 <thead>
                   <tr>
                     <th>ID Factura</th>
                     <th>Cliente</th>
-                    <th>Total</th>
-                    <th>Estado</th>
+                    <th className="text-end">Total</th> {/* Alineado a la derecha */}
+                    <th className="text-center">Estado</th> {/* Centrado */}
                     <th>Fecha</th>
                     <th className="text-center">Acciones</th>
                   </tr>
@@ -221,21 +250,22 @@ const FacturasPage = () => {
                   {facturas.map(factura => (
                     <tr key={factura.id}>
                       <td>{factura.id_factura}</td>
-                      <td>{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
-                      <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(factura.total || 0).toFixed(2)}</td>
-                      <td>
+                      <td className="client-name-cell">{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
+                      <td className="text-end">{formatCurrency(factura.total)}</td> {/* Formateado y alineado */}
+                      <td className="text-center">
                         <span className={`badge ${factura.estado === 'Completada' ?
-                        'bg-success' : (factura.estado === 'Anulada' ? 'bg-secondary' : 'bg-danger')}`}>
+                        'bg-success' : (factura.estado === 'Anulada' ? 'bg-danger' : 'bg-warning')}`}> {/* Usar bg-warning para Pendiente */}
                           {factura.estado}
                         </span>
                       </td>
                       <td>{new Date(factura.fecha).toLocaleString()}</td>
-                      <td className="text-center">
+                      <td className="text-center d-flex flex-wrap justify-content-center gap-1"> {/* Compacto y apilable */}
                         <Button
                           variant="primary"
                           size="sm"
-                          className="me-1"
                           onClick={() => handleViewInvoiceDetails(factura)}
+                          className="btn-action-view"
+                          title="Ver Detalles"
                         >
                           <FontAwesomeIcon icon={faEye} />
                         </Button>
@@ -243,6 +273,8 @@ const FacturasPage = () => {
                           variant="danger"
                           size="sm"
                           onClick={() => handleDeleteInvoice(factura.id)}
+                          className="btn-action-delete"
+                          title="Eliminar Factura"
                         >
                           <FontAwesomeIcon icon={faTrash} />
                         </Button>
@@ -257,45 +289,66 @@ const FacturasPage = () => {
       </Card>
 
       {/* Modal para ver detalles de la factura */}
-      <Modal show={showInvoiceDetailsModal} onHide={() => setShowInvoiceDetailsModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Detalles de Factura #{selectedInvoice?.id_factura}</Modal.Title>
+      <Modal show={showInvoiceDetailsModal} onHide={() => setShowInvoiceDetailsModal(false)} size="lg" centered> {/* Añadido centered */}
+        <Modal.Header closeButton className="facturas-modal-header">
+          <Modal.Title className="facturas-modal-title">Detalles de Factura #{selectedInvoice?.id_factura}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="facturas-modal-body">
           {selectedInvoice && (
             <>
-              <p><strong>Cliente:</strong> {selectedInvoice.cliente?.nombre || 'N/A'}</p>
-              <p><strong>Fecha:</strong> {new Date(selectedInvoice.fecha).toLocaleString()}</p>
-              <p><strong>Forma de Pago:</strong> {selectedInvoice.forma_pago?.metodo || 'N/A'}</p>
-              <p><strong>Estado:</strong> {selectedInvoice.estado}</p>
-              <p><strong>Usuario:</strong> {selectedInvoice.usuario?.username || 'N/A'}</p>
-              <h4 className="mt-4">Productos:</h4>
-              <Table striped bordered hover size="sm">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Precio Unitario</th>
-                    <th>Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedInvoice.detalle_ventas && selectedInvoice.detalle_ventas.map(item => (
-                    <tr key={item.id}>
-                      <td>{item.producto?.nombre || 'N/A'}</td>
-                      <td>{item.cantidad}</td>
-                      <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(item.precio_unitario || 0).toFixed(2)}</td>
-                      <td><FontAwesomeIcon icon={faDollarSign} /> {parseFloat(item.subtotal || 0).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              <h3 className="text-end mt-4">Total: <FontAwesomeIcon icon={faDollarSign} /> {parseFloat(selectedInvoice.total || 0).toFixed(2)}</h3>
+              <Row className="mb-3 g-2">
+                  <Col xs={12} md={6}>
+                      <strong style={{color: '#000000'}}>ID:</strong> <span className="text-muted" style={{color: '#6c757d'}}>{selectedInvoice.id_factura}</span>
+                  </Col>
+                  <Col xs={12} md={6}>
+                      <strong style={{color: '#000000'}}>Fecha:</strong> <span className="text-muted" style={{color: '#6c757d'}}>{new Date(selectedInvoice.fecha).toLocaleString()}</span>
+                  </Col>
+              </Row>
+              <hr style={{ borderColor: '#e0e0e0' }} />
+              <Row className="mb-4 g-2">
+                  <Col xs={12} md={4}>
+                      <strong style={{color: '#000000'}}>Cliente:</strong> <span className="text-muted" style={{color: '#6c757d'}}>{selectedInvoice.cliente?.nombre || 'N/A'}</span>
+                  </Col>
+                  <Col xs={12} md={4}>
+                      <strong style={{color: '#000000'}}>Forma de Pago:</strong> <span className="text-muted" style={{color: '#6c757d'}}>{selectedInvoice.forma_pago?.metodo || 'N/A'}</span>
+                  </Col>
+                  <Col xs={12} md={4}>
+                      <strong style={{color: '#000000'}}>Estado:</strong> <span className="text-muted" style={{color: '#6c757d'}}>{selectedInvoice.estado}</span>
+                  </Col>
+              </Row>
+              <h5 style={{ color: '#00b45c' }}>Productos:</h5>
+              {selectedInvoice.detalle_ventas && selectedInvoice.detalle_ventas.length > 0 ? (
+                <div className="table-responsive">
+                  <Table striped hover size="sm" className="facturas-modal-table-light"> {/* Nueva clase para tabla clara en modal */}
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th className="text-end">Cantidad</th>
+                        <th className="text-end">Precio Unitario</th>
+                        <th className="text-end">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedInvoice.detalle_ventas.map(item => (
+                        <tr key={item.id}>
+                          <td>{item.producto?.nombre || 'N/A'}</td>
+                          <td className="text-end">{item.cantidad}</td>
+                          <td className="text-end">{formatCurrency(item.precio_unitario)}</td>
+                          <td className="text-end">{formatCurrency(item.subtotal)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-muted text-center" style={{color: '#6c757d'}}>No hay productos en esta factura.</p>
+              )}
+              <h3 className="text-end mt-4" style={{ color: '#00b45c' }}>Total: {formatCurrency(selectedInvoice.total)}</h3>
             </>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowInvoiceDetailsModal(false)}>
+        <Modal.Footer className="facturas-modal-footer">
+          <Button variant="secondary" onClick={() => setShowInvoiceDetailsModal(false)} className="btn-close-modal">
             Cerrar
           </Button>
         </Modal.Footer>

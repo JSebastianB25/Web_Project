@@ -2,14 +2,10 @@
 
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import TokenRefreshView
+from users.views import MyTokenObtainPairView # Make sure this import is correct
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Incluye las URLs de tus nuevas aplicaciones bajo un prefijo '/api/'
-    path('api/', include('uglobals.urls')),
-    path('api/', include('users.urls')),
-    path('api/', include('products.urls')),
-    path('api/', include('sales.urls')),
-    # Puedes cambiar 'api/' a 'api/v1/' o lo que prefieras para tus endpoints
-
+    path('api/', include('Web_Project.api_urls')),
 ]

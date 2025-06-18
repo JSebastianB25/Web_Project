@@ -1,0 +1,213 @@
+/* Estilos para ReportsPage.js */
+
+/* --- Contenedor Principal de la Página --- */
+.reports-page {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    background-color: #ffffff; /* Fondo blanco global */
+    color: #000000; /* Texto principal en negro */
+}
+
+/* --- Tarjeta de Selección de Reportes --- */
+.reports-selection-card {
+    background-color: #ffffff !important; /* Fondo blanco para la tarjeta */
+    border: 1px solid #e0e0e0 !important; /* Borde gris muy suave */
+    border-radius: 12px; /* Bordes redondeados */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    max-width: 1200px; /* Ancho máximo para centrar */
+    margin: 0 auto 25px auto; /* Centrar y espacio inferior */
+    padding: 20px;
+}
+
+.reports-selection-card h4 {
+    color: #000000 !important; /* Título de selección en negro */
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+/* --- Botones de Reporte (colores específicos) --- */
+
+/* Base para todos los botones de reporte */
+.btn-report-solid-profit,
+.btn-report-outline-profit,
+.btn-report-solid-products,
+.btn-report-outline-products,
+.btn-report-solid-stock,
+.btn-report-outline-stock,
+.btn-report-solid-employees,
+.btn-report-outline-employees,
+.btn-report-solid-customers,
+.btn-report-outline-customers {
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border-width: 2px; /* Borde más visible */
+}
+
+/* Estilos SOLID (cuando el reporte está activo) */
+.btn-report-solid-profit {
+    background-color: #ffc107 !important; /* Dorado/Amarillo de Bootstrap */
+    border-color: #ffc107 !important;
+    color: #212529 !important; /* Texto oscuro para contraste */
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+.btn-report-solid-profit:hover {
+    background-color: #e0a800 !important;
+    border-color: #e0a800 !important;
+    box-shadow: 0 6px 12px rgba(255, 193, 7, 0.4);
+}
+
+.btn-report-solid-products {
+    background-color: #17a2b8 !important; /* Teal/Cian de Bootstrap */
+    border-color: #17a2b8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+}
+.btn-report-solid-products:hover {
+    background-color: #138496 !important;
+    border-color: #138496 !important;
+    box-shadow: 0 6px 12px rgba(23, 162, 184, 0.4);
+}
+
+.btn-report-solid-stock {
+    background-color: #dc3545 !important; /* Rojo de peligro */
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+.btn-report-solid-stock:hover {
+    background-color: #c82333 !important;
+    border-color: #c82333 !important;
+    box-shadow: 0 6px 12px rgba(220, 53, 69, 0.4);
+}
+
+.btn-report-solid-employees {
+    background-color: #6f42c1 !important; /* Púrpura de Bootstrap */
+    border-color: #6f42c1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(111, 66, 193, 0.3);
+}
+.btn-report-solid-employees:hover {
+    background-color: #5b36a1 !important;
+    border-color: #5b36a1 !important;
+    box-shadow: 0 6px 12px rgba(111, 66, 193, 0.4);
+}
+
+.btn-report-solid-customers {
+    background-color: #fd7e14 !important; /* Naranja de Bootstrap */
+    border-color: #fd7e14 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(253, 126, 20, 0.3);
+}
+.btn-report-solid-customers:hover {
+    background-color: #e66b0e !important;
+    border-color: #e66b0e !important;
+    box-shadow: 0 6px 12px rgba(253, 126, 20, 0.4);
+}
+
+
+/* Estilos OUTLINE (cuando el reporte NO está activo) */
+.btn-report-outline-profit {
+    background-color: transparent !important;
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+.btn-report-outline-profit:hover {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.btn-report-outline-products {
+    background-color: transparent !important;
+    border-color: #17a2b8 !important;
+    color: #17a2b8 !important;
+}
+.btn-report-outline-products:hover {
+    background-color: #17a2b8 !important;
+    color: #ffffff !important;
+}
+
+.btn-report-outline-stock {
+    background-color: transparent !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+.btn-report-outline-stock:hover {
+    background-color: #dc3545 !important;
+    color: #ffffff !important;
+}
+
+.btn-report-outline-employees {
+    background-color: transparent !important;
+    border-color: #6f42c1 !important;
+    color: #6f42c1 !important;
+}
+.btn-report-outline-employees:hover {
+    background-color: #6f42c1 !important;
+    color: #ffffff !important;
+}
+
+.btn-report-outline-customers {
+    background-color: transparent !important;
+    border-color: #fd7e14 !important;
+    color: #fd7e14 !important;
+}
+.btn-report-outline-customers:hover {
+    background-color: #fd7e14 !important;
+    color: #ffffff !important;
+}
+
+/* --- Alerta de Contenido por Defecto --- */
+.reports-alert {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 10px rgba(0, 180, 92, 0.2);
+    font-weight: 500;
+    font-size: 1.1rem;
+    padding: 25px;
+}
+
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) { /* Para tablets y pantallas más pequeñas */
+    .reports-selection-card {
+        padding: 15px;
+    }
+    .reports-selection-card h4 {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+    }
+    .btn.rounded-pill {
+        font-size: 0.95rem;
+        padding: 10px 15px;
+    }
+}
+
+@media (max-width: 768px) { /* Para móviles */
+    .reports-page {
+        padding: 15px;
+    }
+    .reports-selection-card {
+        margin-bottom: 20px;
+    }
+    .reports-selection-card h4 {
+        font-size: 1.1rem;
+    }
+    .btn.rounded-pill {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+    /* Fuerza que los botones se apilen en móviles */
+    .reports-selection-card .g-3 > .col {
+        padding-right: var(--bs-gutter-x, 0.5rem);
+        padding-left: var(--bs-gutter-x, 0.5rem);
+    }
+}
+
+@media (max-width: 576px) { /* Más pequeño para móviles extra pequeños */
+    .reports-selection-card h4 {
+        font-size: 1rem;
+    }
+    .btn.rounded-pill {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+}

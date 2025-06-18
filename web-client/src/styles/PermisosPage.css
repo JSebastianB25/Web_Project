@@ -1,7 +1,7 @@
-/* Estilos para CategoriasPage.js */
+/* Estilos para PermisosPage.js */
 
 /* --- Contenedor Principal de la Página --- */
-.categorias-page {
+.permisos-page {
     padding-top: 30px;
     padding-bottom: 30px;
     background-color: #ffffff; /* Fondo blanco global */
@@ -9,7 +9,7 @@
 }
 
 /* --- Tarjetas (Agregar y Listar) --- */
-.categorias-card {
+.permisos-card {
     background-color: #ffffff !important; /* Fondo blanco para las tarjetas */
     border: 1px solid #e0e0e0 !important; /* Borde gris muy suave */
     border-radius: 12px; /* Bordes redondeados */
@@ -17,8 +17,8 @@
     margin-bottom: 25px; /* Espacio entre tarjetas */
 }
 
-.categorias-card-header-add,
-.categorias-card-header-list {
+.permisos-card-header-add,
+.permisos-card-header-list {
     background-color: #f8f9fa !important; /* Fondo gris muy claro para el encabezado de la tarjeta */
     border-bottom: 1px solid #e0e0e0 !important; /* Borde inferior suave */
     color: #000000 !important; /* Texto negro */
@@ -32,15 +32,15 @@
 }
 
 /* Colores específicos para los headers de las tarjetas */
-.categorias-card-header-add {
+.permisos-card-header-add {
     color: #008a4d !important; /* Verde oscuro para "Agregar" */
 }
-.categorias-card-header-list {
+.permisos-card-header-list {
     color: #17a2b8 !important; /* Teal/Cian para "Existentes" */
 }
 
 
-/* --- Estilos para Inputs, Selects (modo claro) --- */
+/* --- Estilos para Inputs, Selects, Textareas (modo claro) --- */
 .form-label {
     color: #333333; /* Etiquetas de formulario en gris oscuro */
     font-weight: 500;
@@ -70,8 +70,16 @@
     background-color: #ffffff !important;
 }
 
+/* Estilos para el InputGroup.Text (iconos) */
+.input-group-text-light {
+    background-color: #e9ecef !important; /* Fondo gris claro */
+    border: 1px solid #ced4da !important;
+    color: #495057 !important; /* Texto gris oscuro */
+    border-radius: 8px 0 0 8px; /* Bordes solo a la izquierda */
+}
 
-/* --- Botón de Agregar Categoría --- */
+
+/* --- Botón de Agregar Permiso --- */
 .btn-add-submit {
     background-color: #00b45c !important; /* Verde principal */
     border-color: #00b45c !important;
@@ -89,8 +97,8 @@
 }
 
 
-/* --- Tablas (Lista de Categorías) --- */
-.categorias-table-wrapper {
+/* --- Tablas (Lista de Permisos) --- */
+.permisos-table-wrapper {
     margin-bottom: 20px;
     border-radius: 8px;
     overflow-x: auto;
@@ -98,14 +106,14 @@
     box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
-.categorias-table-light {
+.permisos-table-light {
     width: 100%;
-    min-width: 500px; /* Ancho mínimo para la tabla */
+    min-width: 600px; /* Ancho mínimo para la tabla */
     color: #000000;
     border-collapse: collapse;
 }
 
-.categorias-table-light thead th {
+.permisos-table-light thead th {
     background-color: #e6ffe6 !important; /* Fondo verde muy claro para encabezado */
     color: #008a4d !important; /* Texto del encabezado verde oscuro */
     border-bottom: 2px solid #00b45c !important;
@@ -115,7 +123,7 @@
     white-space: nowrap;
 }
 
-.categorias-table-light tbody td {
+.permisos-table-light tbody td {
     background-color: #ffffff; /* Fondo de celdas blanco */
     border-bottom: 1px solid #eeeeee; /* Borde de celda muy claro */
     color: #333333; /* Texto oscuro para legibilidad */
@@ -124,11 +132,11 @@
     font-size: 0.9rem;
 }
 
-.categorias-table-light tbody tr:nth-of-type(odd) td {
+.permisos-table-light tbody tr:nth-of-type(odd) td {
     background-color: #f8f8f8; /* Fondo de celdas impares ligeramente gris */
 }
 
-.categorias-table-light tbody tr:hover {
+.permisos-table-light tbody tr:hover {
     background-color: #e6ffe6 !important; /* Fondo verde muy claro al pasar el mouse */
 }
 
@@ -226,7 +234,7 @@
 
 
 /* --- Alertas de la Página --- */
-.categorias-alert-error {
+.permisos-alert-error {
     background-color: #f8d7da; /* Rojo claro de Bootstrap */
     border-color: #f5c6cb;
     color: #721c24; /* Rojo oscuro de Bootstrap */
@@ -236,7 +244,7 @@
     font-weight: 500;
 }
 
-.categorias-alert-info {
+.permisos-alert-info {
     background-color: #d1ecf1; /* Azul claro de Bootstrap */
     border-color: #bee5eb;
     color: #0c5460; /* Azul oscuro de Bootstrap */
@@ -249,14 +257,14 @@
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 992px) { /* Para tablets y pantallas más pequeñas */
-    .categorias-page {
+    .permisos-page {
         padding: 15px;
     }
-    .categorias-card {
+    .permisos-card {
         margin-bottom: 20px;
     }
-    .categorias-card-header-add,
-    .categorias-card-header-list {
+    .permisos-card-header-add,
+    .permisos-card-header-list {
         font-size: 1.15rem;
     }
     .form-control-light,
@@ -272,29 +280,29 @@
         font-size: 0.85rem;
         padding: 7px 14px;
     }
-    .categorias-table-light th,
-    .categorias-table-light td {
+    .permisos-table-light th,
+    .permisos-table-light td {
         font-size: 0.85rem;
     }
-    .categorias-table-light .text-center.d-flex.justify-content-center {
+    .permisos-table-light .text-center.d-flex.justify-content-center {
         flex-wrap: wrap; /* Permite que los botones se envuelvan */
         gap: 5px; /* Pequeño espacio entre ellos al envolver */
     }
 }
 
 @media (max-width: 768px) { /* Para móviles */
-    .categorias-page {
+    .permisos-page {
         padding: 10px;
     }
-    .categorias-card-header-add,
-    .categorias-card-header-list {
+    .permisos-card-header-add,
+    .permisos-card-header-list {
         font-size: 1rem;
     }
     .btn-add-submit {
         width: 100%; /* Ocupa todo el ancho */
     }
-    .categorias-table-light th,
-    .categorias-table-light td {
+    .permisos-table-light th,
+    .permisos-table-light td {
         font-size: 0.8rem;
     }
     .btn-action-edit,

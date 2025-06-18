@@ -1,341 +1,112 @@
-/* POSPage.css */
+/* Estilos para Navbar.js */
 
-.pos-container {
-    display: grid;
-    grid-template-columns: 2fr 1fr; /* Dos columnas: productos a la izquierda, carrito/controles a la derecha */
-    gap: 20px;
-    padding: 20px;
-    max-width: 1200px;
-    margin: 20px auto;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+/* Fondo de la Navbar con degradado */
+.custom-navbar {
+    background: linear-gradient(to right, #000000 70%, #00b45c); /* Negro 70%, luego transiciona a verde */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Sombra sutil para darle profundidad */
 }
 
-.pos-section {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.pos-section h2 {
-    color: #343a40;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 10px;
-}
-
-/* --- Mensajes Globales --- */
-.global-message {
-    padding: 10px 15px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.global-message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.global-message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.global-message.info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
+/* --- CAMBIO CRÍTICO AQUÍ: Aseguramos el color del Navbar.Brand (KEEPLIC) --- */
+.custom-navbar .navbar-brand {
+    color: #ffffff !important; /* Fuerza el color blanco para KEEPLIC */
+    font-weight: bold; /* Mantenemos el negrita */
 }
 
 
-/* --- Campos de Búsqueda y Selección --- */
-.search-input,
-.select-input {
-    width: calc(100% - 20px);
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 1rem;
+/* Color de los enlaces de la Navbar (ej. "Ver Reportes") */
+.custom-navbar .nav-link {
+    color: #ffffff !important; /* Texto blanco por defecto */
+    font-weight: 500;
+    margin-right: 15px; /* Espacio entre los enlaces */
+    transition: color 0.3s ease;
 }
 
-.control-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #495057;
+.custom-navbar .nav-link:hover,
+.custom-navbar .nav-link:focus {
+    color: #00b45c !important; /* Verde al pasar el mouse/enfocar */
 }
 
-/* --- Lista de Productos --- */
-.product-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 15px;
-    max-height: 500px; /* Limita la altura y permite scroll */
-    overflow-y: auto;
-    padding-right: 5px; /* Espacio para la scrollbar */
+/* Color del título de los Dropdowns (ej. "Productos", "Crear Datos") */
+.custom-navbar .nav-link.dropdown-toggle {
+    color: #ffffff !important; /* Texto blanco por defecto */
+    transition: color 0.3s ease;
 }
 
-.product-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    background-color: #fefefe;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease-in-out;
+.custom-navbar .nav-link.dropdown-toggle:hover,
+.custom-navbar .nav-link.dropdown-toggle:focus {
+    color: #00b45c !important; /* Verde al pasar el mouse/enfocar */
 }
 
-.product-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+/* Estilo para el ícono de la flecha del Dropdown */
+.custom-navbar .dropdown-toggle::after {
+    color: #ffffff; /* Flecha blanca */
 }
 
-.product-image {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.product-info h3 {
-    font-size: 1.1rem;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.product-info p {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 3px;
-}
-
-.add-to-cart-button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background-color 0.2s;
-    width: 100%;
-}
-
-.add-to-cart-button:hover:not(:disabled) {
-    background-color: #218838;
-}
-
-.add-to-cart-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* --- Carrito de Compras --- */
-.cart-item-list {
-    max-height: 350px; /* Limita la altura y permite scroll */
-    overflow-y: auto;
-    padding-right: 5px;
-    margin-bottom: 20px;
-}
-
-.cart-item {
-    display: flex;
-    align-items: center;
+/* Estilos para el menú desplegable del Dropdown */
+.custom-navbar .dropdown-menu {
+    background-color: #ffffff !important; /* Fondo blanco para el menú desplegable */
+    border: 1px solid #00b45c !important; /* Borde verde */
+    border-radius: 8px; /* Bordes redondeados */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
     padding: 10px 0;
-    border-bottom: 1px dashed #e9ecef;
 }
 
-.cart-item:last-child {
-    border-bottom: none;
-}
-
-.cart-item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 15px;
-}
-
-.cart-item .item-info {
-    flex-grow: 1;
-}
-
-.cart-item .item-info h3 {
-    font-size: 1rem;
-    margin-bottom: 5px;
-}
-
-.cart-item .item-info p {
-    font-size: 0.85rem;
-    color: #555;
-    margin-bottom: 2px;
-}
-
-.item-quantity-controls {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.item-quantity-controls button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.item-quantity-controls button:hover {
-    background-color: #0056b3;
-}
-
-.item-quantity-controls span {
-    font-weight: bold;
-    padding: 0 5px;
-}
-
-.remove-button {
-    background-color: #dc3545 !important; /* Override other button styles */
-    margin-left: 10px;
-}
-
-.remove-button:hover {
-    background-color: #c82333 !important;
-}
-
-.cart-summary {
-    text-align: right;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #343a40;
-    padding-top: 15px;
-    border-top: 2px solid #e9ecef;
-}
-
-.empty-cart-message {
-    text-align: center;
-    color: #6c757d;
-    font-style: italic;
-    padding: 20px;
-}
-
-/* --- Botones de Acción --- */
-.action-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    gap: 10px;
-}
-
-.clear-cart-button,
-.process-sale-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-weight: bold;
-    flex: 1; /* Para que ocupen el espacio disponible */
-}
-
-.clear-cart-button {
-    background-color: #6c757d;
-    color: white;
-}
-
-.clear-cart-button:hover:not(:disabled) {
-    background-color: #5a6268;
-}
-
-.process-sale-button {
-    background-color: #007bff;
-    color: white;
-}
-
-.process-sale-button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-.clear-cart-button:disabled,
-.process-sale-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* --- Modal --- */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background-color: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    position: relative;
-}
-
-.modal-content h3 {
-    color: #28a745;
-    margin-bottom: 15px;
-}
-
-.modal-content p {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
-    color: #343a40;
-}
-
-.close-modal-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
+/* Estilos para los elementos dentro del Dropdown (ej. "Visualizar mis productos") */
+.custom-navbar .dropdown-item {
+    color: #000000 !important; /* Texto negro por defecto */
     padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-    font-size: 1rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.close-modal-button:hover {
-    background-color: #0056b3;
+.custom-navbar .dropdown-item:hover,
+.custom-navbar .dropdown-item:focus,
+.custom-navbar .dropdown-item.active { /* Para cuando un item está activo */
+    background-color: #00b45c !important; /* Fondo verde al pasar el mouse/activo */
+    color: #ffffff !important; /* Texto blanco al pasar el mouse/activo */
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .pos-container {
-        grid-template-columns: 1fr; /* Stack columns on small screens */
+/* Estilo para los divisores en los Dropdowns */
+.custom-navbar .dropdown-divider {
+    border-top-color: #e0e0e0; /* Color suave para el divisor */
+    margin: 5px 0;
+}
+
+/* Estilos para el texto de usuario en el Dropdown de usuario */
+.custom-navbar #nav-dropdown-user {
+    color: #ffffff !important; /* Texto blanco */
+    font-weight: bold;
+}
+
+.custom-navbar #nav-dropdown-user.dropdown-toggle:hover,
+.custom-navbar #nav-dropdown-user.dropdown-toggle:focus {
+    color: #00b45c !important; /* Verde al pasar el mouse */
+}
+
+/* Estilos del botón de alternancia (hamburguesa) para móviles */
+.custom-navbar .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5) !important; /* Borde blanco semi-transparente */
+}
+
+.custom-navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255, 255, 255, 0.7)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E") !important; /* Icono blanco */
+}
+
+/* Adaptación para pantallas pequeñas */
+@media (max-width: 991.98px) { /* Límite 'lg' de Bootstrap */
+    .custom-navbar .navbar-collapse {
+        background-color: #000000; /* Fondo negro para el menú colapsado */
+        border-top: 1px solid #00b45c; /* Borde superior verde */
+        padding-bottom: 10px;
     }
-    .product-list {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    .custom-navbar .nav-link,
+    .custom-navbar .nav-link.dropdown-toggle {
+        margin-right: 0;
+        padding-left: 20px; /* Padding para enlaces en el menú colapsado */
     }
-    .action-buttons {
-        flex-direction: column;
+    .custom-navbar .dropdown-menu {
+        border: none !important; /* Sin borde en el modo colapsado */
+        box-shadow: none !important; /* Sin sombra en el modo colapsado */
+        margin-top: 0;
+        padding-top: 0;
     }
 }
