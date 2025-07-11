@@ -1,6 +1,7 @@
 {
   "name": "web-client",
   "version": "0.1.0",
+  "homepage": "/login/",
   "private": true,
   "dependencies": {
     "@babel/plugin-transform-async-generator-functions": "^7.27.1",

@@ -375,7 +375,7 @@ const UsuariosPage = () => {
                                         <th>ID</th>
                                         <th>Username</th>
                                         <th>Email</th>
-                                        <th>Role</th>
+                                        <th>Roles</th>
                                         <th className="text-center">Actions</th>
                                     </tr>
                                 </thead>
@@ -472,7 +472,7 @@ const UsuariosPage = () => {
                                     </Form.Text>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="editRol">
-                                    <Form.Label style={{color: '#000000'}}>Role</Form.Label> {/* <<-- ADDED: Black color */}
+                                    <Form.Label style={{color: '#000000'}}>Roles</Form.Label> {/* <<-- ADDED: Black color */}
                                     <InputGroup>
                                         <InputGroup.Text className="input-group-text-light"><FontAwesomeIcon icon={faUserTag} /></InputGroup.Text> {/* <<-- ADDED: Style class */}
                                         <Form.Select
@@ -482,7 +482,7 @@ const UsuariosPage = () => {
                                             required
                                             className="form-select-light" // <<-- ADDED: Style class
                                         >
-                                            <option value="">Select a Role</option>
+                                            <option value="">Select a Roles</option>
                                             {roles.map(rol => (
                                                 <option key={rol.id} value={rol.id}>
                                                     {rol.nombre}
