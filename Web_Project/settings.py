@@ -134,11 +134,11 @@ WSGI_APPLICATION = 'Web_Project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'web_projectdb',
-        'USER': 'root',
-        'PASSWORD': 'S3b@s971125',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': 'JSebastianBT$web_projectdb',
+        'USER': 'JSebastianBT',
+        'PASSWORD': 'S3bas971125',
+        'HOST': 'JSebastianBT.mysql.pythonanywhere-services.com',
+        'PORT': '',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
