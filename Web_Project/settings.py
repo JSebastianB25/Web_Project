@@ -134,11 +134,11 @@ WSGI_APPLICATION = 'Web_Project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'JSebastianBT$web_projectdb',
-        'USER': 'JSebastianBT',
-        'PASSWORD': 'S3bas971125',
-        'HOST': 'JSebastianBT.mysql.pythonanywhere-services.com',
-        'PORT': '',
+        'NAME': 'web_projectdb',
+        'USER': 'root',
+        'PASSWORD': 'S3b@s971125',
+        'HOST': 'Localhost',
+        'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
@@ -181,7 +181,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static_files') # Crea esta carpeta en la raíz de Web_Project
+#STATIC_ROOT = os.path.join(BASE_DIR, 'static_files') # Crea esta carpeta en la raíz de Web_Project
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
