@@ -167,3 +167,20 @@
         max-width: 100%; /* Ocupa todo el ancho en móviles */
     }
 }
+/* web-client/src/styles/AgregarProductos.css */
+
+/* ... tus estilos existentes ... */
+
+.image-preview-container {
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 200px; /* Limita la altura de la previsualización */
+    object-fit: contain; /* Asegura que la imagen se ajuste sin distorsionarse */
+    border-radius: 4px;
+}

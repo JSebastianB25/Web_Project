@@ -326,3 +326,129 @@
         height: 100px;
     }
 }
+/* src/styles/AgregarProductos.css */
+
+/* Estilos para el contenedor de la previsualización de imagen */
+.image-preview-area {
+    min-height: 200px; /* Altura mínima para el área de previsualización */
+    border: 2px dashed #cccccc; /* Borde punteado para indicar un área de carga */
+    border-radius: 10px; /* Bordes redondeados */
+    background-color: #f8f9fa; /* Fondo claro */
+    display: flex;
+    flex-direction: column; /* Para centrar texto e icono si no hay imagen */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Asegura que la imagen no se desborde si es más grande */
+    position: relative; /* Para el botón de eliminar posicionado absolutamente */
+    padding: 15px; /* Espacio interno */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Sombra interna sutil */
+}
+
+.image-preview-area img {
+    /* Los estilos de la imagen se manejan principalmente inline en el JSX */
+    /* Aquí puedes añadir algo global si aplica, pero los inline son más específicos */
+}
+
+/* Estilos para el contenedor de la webcam */
+.webcam-capture-area {
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Estilo para el encabezado de la tarjeta de imagen */
+.card-header.text-light-blue {
+    background-color: #007bff; /* Color azul primario de Bootstrap */
+    color: white !important; /* Texto blanco */
+    font-weight: bold;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, .125); /* Un borde sutil */
+    border-top-left-radius: calc(0.375rem - 1px);
+    border-top-right-radius: calc(0.375rem - 1px);
+}
+
+/* Estilos generales para los labels */
+.form-label {
+    color: #343a40 !important; /* Asegura un color oscuro para el texto */
+    font-weight: 600;
+}
+/* src/styles/EditarProductosPage.css */
+
+/* Estilos para el contenedor de la previsualización de imagen */
+.image-preview-area {
+    min-height: 250px; /* Aumentar la altura mínima para un visualizador más grande */
+    border: 2px dashed #cccccc; /* Borde punteado para indicar un área de carga */
+    border-radius: 10px; /* Bordes redondeados */
+    background-color: #f8f9fa; /* Fondo claro */
+    display: flex;
+    flex-direction: column; /* Para centrar texto e icono si no hay imagen */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Asegura que la imagen no se desborde si es más grande */
+    position: relative; /* Para el botón de eliminar posicionado absolutamente */
+    padding: 15px; /* Espacio interno */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Sombra interna sutil */
+}
+
+.image-preview-area img {
+    /* Los estilos de la imagen se manejan principalmente inline en el JSX */
+    /* Aquí puedes añadir algo global si aplica, pero los inline son más específicos */
+}
+
+/* Estilos para el contenedor de la webcam */
+.webcam-capture-area {
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Estilo para el encabezado de la tarjeta de imagen */
+.card-header.text-light-blue {
+    background-color: #007bff; /* Color azul primario de Bootstrap */
+    color: white !important; /* Texto blanco */
+    font-weight: bold;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, .125); /* Un borde sutil */
+    border-top-left-radius: calc(0.375rem - 1px);
+    border-top-right-radius: calc(0.375rem - 1px);
+}
+
+/* Estilos generales para los labels */
+.form-label {
+    color: #343a40 !important; /* Asegura un color oscuro para el texto */
+    font-weight: 600;
+}
+
+/* Para el campo de referencia de producto que ahora es texto estático */
+.form-control-static {
+    padding: .375rem .75rem; /* Simula el padding de un input */
+    margin-bottom: 0; /* Elimina margen inferior extra */
+    border: 1px solid #ced4da; /* Simula el borde de un input */
+    border-radius: .25rem; /* Bordes redondeados */
+    background-color: #e9ecef; /* Fondo gris claro para indicar que es de solo lectura */
+    color: #495057; /* Color de texto */
+    display: block; /* Para que ocupe todo el ancho */
+    line-height: 1.5;
+}
+
+/* Estilos para el contenedor del código de barras */
+.barcode-container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.barcode-container svg {
+    max-width: 100%;
+    height: auto;
+}

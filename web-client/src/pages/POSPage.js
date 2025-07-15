@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useCallback} from 'react';
 import {
     Container, Row, Col, Form, Button, Table, Spinner,
-    InputGroup, Card, Modal, ListGroup, Alert // Asegúrate que Alert esté importado
+    InputGroup, Card, Modal, ListGroup, Alert
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faPlus, faTrash, faSearch, faTimes,
     faCheckCircle, faDollarSign,
     faEye, faTimesCircle,
-    faCashRegister // Importar faCashRegister aquí
+    faCashRegister
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -20,17 +20,17 @@ import Select from 'react-select';
 // --- Importa tus estilos personalizados para POSPage ---
 import '../styles/POSPage.css';
 
-// CORRECCIÓN: Renombrado API_BASE_BASE_URL a API_BASE_URL si era un error de tipografía
-const API_BASE_URL = 'http://localhost:8000/api'; 
+const API_BASE_URL = 'http://localhost:8000/api';
 const API_PRODUCTOS_URL = `${API_BASE_URL}/productos/`;
 const API_CLIENTES_URL = `${API_BASE_URL}/clientes/`;
 const API_FORMAS_PAGO_URL = `${API_BASE_URL}/formas_pago/`;
-const API_USUARIOS_URL = `${API_BASE_URL}/usuarios/`; // Asumiendo que este endpoint devuelve el usuario actual
+const API_USUARIOS_URL = `${API_BASE_URL}/usuarios/`;
 const API_FACTURAS_URL = `${API_BASE_URL}/facturas/`;
 
+// Helper para formatear moneda
 const formatCurrency = (value) => {
     if (value === null || value === undefined) return 'N/A';
-    const numValue = parseFloat(value); 
+    const numValue = parseFloat(value);
     if (isNaN(numValue)) return 'N/A';
     return new Intl.NumberFormat('es-CO', {
         style: 'currency',
@@ -39,6 +39,17 @@ const formatCurrency = (value) => {
         maximumFractionDigits: 2,
     }).format(numValue);
 };
+
+// Helper para construir la URL absoluta de la imagen
+const getAbsoluteImageUrl = (relativePath) => {
+    if (!relativePath) return 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'; // Fallback
+    if (relativePath.startsWith('http')) {
+        return relativePath; // Ya es una URL absoluta
+    }
+    // Construir la URL absoluta para rutas relativas de Django
+    return `${API_BASE_URL.replace('/api', '')}${relativePath}`;
+};
+
 
 const POSPage = () => {
     const navigate = useNavigate();
@@ -69,6 +80,7 @@ const POSPage = () => {
 
     const fetchFacturas = useCallback(async () => {
         try {
+            // Limitar a 5 facturas y ordenar por fecha descendente para "últimas facturas"
             const response = await axios.get(`${API_FACTURAS_URL}?limit=5&ordering=-fecha`);
             setFacturas(response.data.results || []);
         } catch (err) {
@@ -95,7 +107,7 @@ const POSPage = () => {
             setClientes(clientesRes.data.map(client => ({ value: client.id, label: client.nombre })));
             setFormasPago(formasPagoRes.data.map(fp => ({ value: fp.id, label: fp.metodo })));
             setProductosDisponibles(productosRes.data);
-            
+
             if (usuariosRes.data && usuariosRes.data.length > 0) {
                 setDefaultUserId(usuariosRes.data[0].id);
                 setCurrentSale(prev => ({ ...prev, usuario: usuariosRes.data[0].id }));
@@ -103,8 +115,8 @@ const POSPage = () => {
                 Swal.fire('Advertencia', 'No se encontraron usuarios. Por favor, crea al menos un usuario para poder crear facturas.', 'warning');
                 setError('No hay usuarios disponibles para crear facturas.');
             }
-            
-            fetchFacturas(); 
+
+            fetchFacturas();
 
         } catch (err) {
             console.error('Error fetching initial data:', err.response ? err.response.data : err.message);
@@ -150,11 +162,13 @@ const POSPage = () => {
     };
 
     const handleAddProductToSale = (product) => {
+        const displayImageUrl = getAbsoluteImageUrl(product.imagen);
+
         Swal.fire({
             title: `Añadir "${product.nombre}"`,
             html: `
                 <div style="text-align: center;">
-                    ${product.imagen ? `<img src="${product.imagen}" alt="${product.nombre}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
+                    ${product.imagen ? `<img src="${displayImageUrl}" alt="${product.nombre}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
                     <p>Stock disponible: <strong>${product.stock}</strong></p>
                     <p>Precio Sugerido: <strong>${formatCurrency(product.precio_sugerido_venta)}</strong></p>
                     <input type="number" id="swal-quantity" class="swal2-input" placeholder="Cantidad" min="1" value="1" max="${product.stock}">
@@ -181,7 +195,7 @@ const POSPage = () => {
                 const quantity = result.value;
                 const precioUnitario = parseFloat(product.precio_sugerido_venta);
 
-                const existingItemIndex = currentSale.items.findIndex(item => item.producto_id === product.referencia_producto);
+                const existingItemIndex = currentSale.items.findIndex(item => item.producto === product.id);
 
                 let updatedItems;
                 if (existingItemIndex > -1) {
@@ -199,7 +213,7 @@ const POSPage = () => {
                     updatedItems = [
                         ...currentSale.items,
                         {
-                            producto_id: product.referencia_producto,
+                            producto: product.id,
                             nombre: product.nombre,
                             referencia_producto: product.referencia_producto,
                             cantidad: quantity,
@@ -219,7 +233,7 @@ const POSPage = () => {
 
     const handleUpdateItemQuantity = (index, newQuantity) => {
         const itemToUpdate = currentSale.items[index];
-        const productInStock = productosDisponibles.find(p => p.referencia_producto === itemToUpdate.producto_id);
+        const productInStock = productosDisponibles.find(p => p.id === itemToUpdate.producto);
 
         if (!productInStock) {
             Swal.fire('Error', 'Producto no encontrado en el stock disponible.', 'error');
@@ -275,7 +289,7 @@ const POSPage = () => {
                 forma_pago: currentSale.forma_pago,
                 usuario: defaultUserId,
                 detalle_ventas: currentSale.items.map(item => ({
-                    producto_id: item.producto_id,
+                    producto: item.producto,
                     cantidad: item.cantidad,
                     precio_unitario: item.precio_unitario,
                 })),
@@ -295,7 +309,24 @@ const POSPage = () => {
             fetchInitialData();
         } catch (error) {
             console.error('Error al finalizar la venta:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message;
+            let errorMessage = 'Ocurrió un error inesperado al registrar la venta.';
+            if (error.response && error.response.data) {
+                 if (error.response.data.detalle_ventas) {
+                    errorMessage = "Error en los detalles de la venta: " +
+                                   Object.values(error.response.data.detalle_ventas)
+                                         .flat()
+                                         .map(err => (typeof err === 'object' ? JSON.stringify(err) : err))
+                                         .join('; ');
+                } else if (error.response.data.non_field_errors) {
+                    errorMessage = error.response.data.non_field_errors.join('; ');
+                } else if (typeof error.response.data === 'object') {
+                    errorMessage = JSON.stringify(error.response.data);
+                } else {
+                    errorMessage = error.response.data;
+                }
+            } else {
+                errorMessage = error.message;
+            }
             Swal.fire('Error', `Hubo un problema al registrar la venta: ${errorMessage}`, 'error');
         } finally {
             setLoading(false);
@@ -386,17 +417,16 @@ const POSPage = () => {
     };
 
     return (
-        <Container 
+        <Container
             fluid
             className="pos-page p-4"
-            // --- CAMBIO AQUÍ: Fondo blanco para toda la página ---
             style={{
                 minHeight: 'calc(100vh - 56px)',
-                backgroundColor: '#ffffff', // Fondo blanco
-                color: '#000000' // Texto negro por defecto
+                backgroundColor: '#ffffff',
+                color: '#000000'
             }}
         >
-            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}> {/* Título principal en negro */}
+            <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
                 <FontAwesomeIcon icon={faCashRegister} className="me-3" />
                 Punto de Venta (POS)
             </h2>
@@ -408,7 +438,7 @@ const POSPage = () => {
                     <Spinner animation="border" role="status" style={{ color: '#00b45c' }}>
                         <span className="visually-hidden">Cargando...</span>
                     </Spinner>
-                    <p className="mt-2" style={{ color: '#000000' }}>Cargando datos...</p> {/* Texto de carga en negro */}
+                    <p className="mt-2" style={{ color: '#000000' }}>Cargando datos...</p>
                 </div>
             )}
 
@@ -418,23 +448,23 @@ const POSPage = () => {
                     <Col lg={7} className="mb-4">
                         <Card className="pos-card"
                             style={{
-                                backgroundColor: '#f8f9fa', // Fondo blanco muy suave
-                                borderColor: '#e0e0e0', // Borde gris suave
-                                color: '#000000' // Texto negro por defecto en esta tarjeta
+                                backgroundColor: '#f8f9fa',
+                                borderColor: '#e0e0e0',
+                                color: '#000000'
                             }}
                         >
                             <Card.Body>
-                                <Card.Title className="pos-card-title-light">Nueva Venta</Card.Title> {/* Usar clase light */}
+                                <Card.Title className="pos-card-title-light">Nueva Venta</Card.Title>
                                 <Form>
                                     <Form.Group className="mb-3">
-                                        <Form.Label style={{color: '#000000'}}>Cliente</Form.Label> {/* Etiqueta en negro */}
+                                        <Form.Label style={{color: '#000000'}}>Cliente</Form.Label>
                                         <Select
                                             options={clientes}
                                             value={clientes.find(c => c.value === currentSale.cliente)}
                                             onChange={(selectedOption) => handleSaleChange(selectedOption, 'cliente')}
                                             placeholder="Seleccionar Cliente"
                                             isClearable
-                                            className="react-select-container-light" // Nueva clase para modo claro
+                                            className="react-select-container-light"
                                             classNamePrefix="react-select"
                                         />
                                     </Form.Group>
@@ -443,20 +473,20 @@ const POSPage = () => {
                                     </Button>
 
                                     <Form.Group className="mb-3">
-                                        <Form.Label style={{color: '#000000'}}>Forma de Pago</Form.Label> {/* Etiqueta en negro */}
+                                        <Form.Label style={{color: '#000000'}}>Forma de Pago</Form.Label>
                                         <Select
                                             options={formasPago}
                                             value={formasPago.find(fp => fp.value === currentSale.forma_pago)}
                                             onChange={(selectedOption) => handleSaleChange(selectedOption, 'forma_pago')}
                                             placeholder="Seleccionar Forma de Pago"
                                             isClearable
-                                            className="react-select-container-light" // Nueva clase para modo claro
+                                            className="react-select-container-light"
                                             classNamePrefix="react-select"
                                         />
                                     </Form.Group>
 
                                     <div className="table-responsive pos-table-wrapper">
-                                        <Table striped hover size="sm" className="pos-items-table-light"> {/* Nueva clase para tabla clara */}
+                                        <Table striped hover size="sm" className="pos-items-table-light">
                                             <thead>
                                                 <tr>
                                                     <th className="text-center">Imagen</th>
@@ -474,13 +504,13 @@ const POSPage = () => {
                                                     </tr>
                                                 ) : (
                                                     currentSale.items.map((item, index) => (
-                                                        <tr key={item.producto_id}>
+                                                        <tr key={item.producto}>
                                                             <td className="text-center">
                                                                 {item.imagen && (
                                                                     <img
-                                                                        src={item.imagen}
+                                                                        src={getAbsoluteImageUrl(item.imagen)}
                                                                         alt={item.nombre}
-                                                                        className="product-thumbnail-light" // Clase para estilo de imagen en modo claro
+                                                                        className="product-thumbnail-light"
                                                                     />
                                                                 )}
                                                             </td>
@@ -492,7 +522,7 @@ const POSPage = () => {
                                                                         min="1"
                                                                         value={item.cantidad}
                                                                         onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value, 10))}
-                                                                        className="table-input-light" // Clase para estilo de input en tabla clara
+                                                                        className="table-input-light"
                                                                     />
                                                                 </InputGroup>
                                                             </td>
@@ -513,7 +543,7 @@ const POSPage = () => {
                                                                                 e.target.value = val.toFixed(2);
                                                                             }
                                                                         }}
-                                                                        className="table-input-light" // Clase para estilo de input en tabla clara
+                                                                        className="table-input-light"
                                                                     />
                                                                 </InputGroup>
                                                             </td>
@@ -535,7 +565,7 @@ const POSPage = () => {
                                         </Table>
                                     </div>
 
-                                    <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-3 border-top" style={{borderColor: '#e0e0e0'}}> {/* Borde divisor claro */}
+                                    <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-3 border-top" style={{borderColor: '#e0e0e0'}}>
                                         <h4 className="mb-2 mb-md-0" style={{ color: '#00b45c' }}>Total: {formatCurrency(currentSale.total)}</h4>
                                         <div className="d-flex flex-wrap justify-content-end gap-2">
                                             <Button
@@ -550,7 +580,7 @@ const POSPage = () => {
                                             <Button
                                                 variant="primary"
                                                 onClick={handleOpenProductSearchModal}
-                                                className="btn-add-product-light" // Nueva clase para este botón en modo claro
+                                                className="btn-add-product-light"
                                             >
                                                 <FontAwesomeIcon icon={faPlus} className="me-2" />
                                                 Añadir Producto
@@ -562,14 +592,14 @@ const POSPage = () => {
                         </Card>
                     </Col>
 
-                    {/* Sección de Historial de Facturas - También con fondo blanco */}
+                    {/* Sección de Historial de Facturas */}
                     <Col lg={5}>
                         <Card
-                            className="pos-card" // Usamos la misma clase para la tarjeta con fondo blanco
+                            className="pos-card"
                             style={{
-                                backgroundColor: '#f8f9fa', // Fondo blanco muy suave
-                                borderColor: '#e0e0e0', // Borde gris suave
-                                color: '#000000' // Texto negro por defecto en esta tarjeta
+                                backgroundColor: '#f8f9fa',
+                                borderColor: '#e0e0e0',
+                                color: '#000000'
                             }}
                         >
                             <Card.Body>
@@ -578,21 +608,23 @@ const POSPage = () => {
                                     <p className="text-center text-muted">No hay facturas recientes registradas.</p>
                                 ) : (
                                     <div className="table-responsive pos-history-table-wrapper">
-                                        <Table striped hover size="sm" className="pos-items-table-light"> {/* Usamos la misma clase de tabla clara */}
+                                        <Table striped hover size="sm" className="pos-items-table-light">
                                             <thead>
                                                 <tr>
-                                                    <th>ID</th>
-                                                    <th>Cliente</th>
-                                                    <th>Total</th>
-                                                    <th>Estado</th>
-                                                    <th className="text-center">Acciones</th>
+                                                    <th style={{ width: '10%' }}>ID</th>
+                                                    <th style={{ width: '30%' }}>Cliente</th>
+                                                    <th style={{ width: '20%' }}>Total</th>
+                                                    <th style={{ width: '15%' }}>Estado</th>
+                                                    <th className="text-center" style={{ width: '25%' }}>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {facturas.map(factura => (
                                                     <tr key={factura.id}>
-                                                        <td>{factura.id_factura}</td>
-                                                        <td className="client-name-cell">{factura.cliente ? factura.cliente.nombre : 'N/A'}</td>
+                                                        <td className="text-truncate" title={factura.id_factura}>{factura.id_factura}</td>
+                                                        <td className="text-truncate" title={factura.cliente ? factura.cliente.nombre : 'N/A'}>
+                                                            {factura.cliente ? factura.cliente.nombre : 'N/A'}
+                                                        </td>
                                                         <td>{formatCurrency(factura.total)}</td>
                                                         <td>
                                                             <span className={`badge ${factura.estado === 'Completada' ?
@@ -605,7 +637,7 @@ const POSPage = () => {
                                                                 variant="primary"
                                                                 size="sm"
                                                                 onClick={() => handleViewInvoiceDetails(factura)}
-                                                                className="btn-action-view"
+                                                                className="btn-action-icon" // Clase para botones de icono
                                                                 title="Ver Detalles"
                                                             >
                                                                 <FontAwesomeIcon icon={faEye} />
@@ -615,7 +647,7 @@ const POSPage = () => {
                                                                     variant="success"
                                                                     size="sm"
                                                                     onClick={() => handleCompleteInvoice(factura.id)}
-                                                                    className="btn-action-complete"
+                                                                    className="btn-action-icon"
                                                                     title="Completar Factura"
                                                                 >
                                                                     <FontAwesomeIcon icon={faCheckCircle} />
@@ -626,7 +658,7 @@ const POSPage = () => {
                                                                     variant="danger"
                                                                     size="sm"
                                                                     onClick={() => handleCancelInvoice(factura.id)}
-                                                                    className="btn-action-cancel"
+                                                                    className="btn-action-icon"
                                                                     title="Anular Factura y Devolver Stock"
                                                                 >
                                                                     <FontAwesomeIcon icon={faTimesCircle} />
@@ -647,33 +679,33 @@ const POSPage = () => {
 
             {/* Modal de Búsqueda de Producto */}
             <Modal show={showProductSearchModal} onHide={() => setShowProductSearchModal(false)} centered size="lg">
-                <Modal.Header closeButton className="pos-modal-header-light"> {/* Nueva clase para modal header claro */}
-                    <Modal.Title className="pos-modal-title-light"> {/* Nueva clase para modal title claro */}
+                <Modal.Header closeButton className="pos-modal-header-light">
+                    <Modal.Title className="pos-modal-title-light">
                         <FontAwesomeIcon icon={faSearch} className="me-2" />
                         Buscar y Añadir Producto
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body className="pos-modal-body-light"> {/* Nueva clase para modal body claro */}
+                <Modal.Body className="pos-modal-body-light">
                     <Form.Control
                         type="text"
                         placeholder="Buscar por nombre o referencia"
                         value={searchTerm}
                         onChange={handleSearchTermChange}
-                        className="mb-3 pos-search-input-light" // Clase para estilo de input de búsqueda claro
+                        className="mb-3 pos-search-input-light"
                     />
-                    <ListGroup className="pos-search-results-light"> {/* Nueva clase para resultados de búsqueda claros */}
+                    <ListGroup className="pos-search-results-light">
                         {searchResults.length === 0 && searchTerm ? (
                             <ListGroup.Item disabled className="pos-search-item-empty-light">
                                 No se encontraron productos con "{searchTerm}".
                             </ListGroup.Item>
                         ) : searchResults.length === 0 && !searchTerm ? (
-                            <ListGroup.Item disabled className="pos-search-item-empty-light">
+                            <ListGroup.Item disabled className="pos-search-item-empty-empty-light">
                                 Escribe para buscar productos o ve la lista completa.
                             </ListGroup.Item>
                         ) : (
                             searchResults.map(product => (
                                 <ListGroup.Item
-                                    key={product.referencia_producto}
+                                    key={product.id}
                                     action
                                     onClick={() => handleAddProductToSale(product)}
                                     className="d-flex justify-content-between align-items-center pos-search-item-light"
@@ -681,14 +713,14 @@ const POSPage = () => {
                                     <div className="d-flex align-items-center">
                                         {product.imagen && (
                                             <img
-                                                src={product.imagen}
+                                                src={getAbsoluteImageUrl(product.imagen)}
                                                 alt={product.nombre}
                                                 className="product-thumbnail-light me-2"
                                             />
                                         )}
                                         <div>
-                                            <h5 className="mb-0" style={{color: '#000000'}}>{product.nombre}</h5> {/* Nombre del producto en negro */}
-                                            <small className="text-muted" style={{color: '#6c757d'}}>{`Ref: ${product.referencia_producto} - Stock: ${product.stock}`}</small> {/* Texto pequeño en gris */}
+                                            <h5 className="mb-0" style={{color: '#000000'}}>{product.nombre}</h5>
+                                            <small className="text-muted" style={{color: '#6c757d'}}>{`Ref: ${product.referencia_producto} - Stock: ${product.stock}`}</small>
                                         </div>
                                     </div>
                                     <Button variant="outline-success" size="sm" className="btn-add-search-result">
@@ -748,7 +780,7 @@ const POSPage = () => {
                                                 <td className="text-center">
                                                     {detalle.producto?.imagen && (
                                                         <img
-                                                            src={detalle.producto.imagen}
+                                                            src={getAbsoluteImageUrl(detalle.producto.imagen)}
                                                             alt={detalle.producto.nombre}
                                                             className="product-thumbnail-light"
                                                         />

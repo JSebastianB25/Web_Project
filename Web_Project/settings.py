@@ -17,8 +17,10 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MEDIA_URL = '/media/'
+# DIRECTORIO PARA ARCHIVOS MEDIA (imágenes, PDFs, etc. subidos por usuarios)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# URL para acceder a los archivos media desde el navegador
+MEDIA_URL = '/media/'
 
 
 
@@ -30,7 +32,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SECRET_KEY = 'django-insecure-um%nk%(ufvpllm(ttu(swl%*v-g^apj(&9l)j0lu+d@k2*681s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['JSebastianBT.pythonanywhere.com', 'localhost', '127.0.0.1']
 
