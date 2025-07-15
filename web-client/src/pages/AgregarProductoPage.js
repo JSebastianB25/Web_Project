@@ -16,33 +16,33 @@ const API_BASE_URL = 'http://localhost:8000/api';
 const API_PRODUCTOS_URL = `${API_BASE_URL}/productos/`;
 const API_PROVEEDORES_URL = `${API_BASE_URL}/proveedores/`;
 const API_CATEGORIAS_URL = `${API_BASE_URL}/categorias/`;
+const API_MARCAS_URL = `${API_BASE_URL}/marcas/`; // Nueva URL para marcas
 
-// --- NUEVAS FUNCIONES PARA MANEJO DE NÚMEROS CON SEPARADORES ---
-// Formatea un número para mostrarlo en un input de texto (con separadores de miles y coma decimal)
+// --- FUNCIONES PARA MANEJO DE NÚMEROS CON SEPARADORES (AJUSTADAS LIGERAMENTE) ---
+// Formatea un número para visualización (ej. 1234567.89 -> "1.234.567,89")
 const formatInputNumber = (value, isInteger = false) => {
     if (value === null || value === undefined || value === '') return '';
-    // Si el valor ya es un número, o si es un string que se puede parsear directamente
+    // Asegurarse de que el valor es un número antes de formatear
     const numValue = typeof value === 'string'
-        ? parseFloat(value.replace(/\./g, '').replace(/,/g, '.')) // Limpiar string antes de parsear
+        ? parseFloat(value.replace(/\./g, '').replace(/,/g, '.')) // Limpiar para parsear si es string
         : parseFloat(value);
 
-    // Si no es un número válido, devuelve el valor original (permite que el usuario siga escribiendo)
-    if (isNaN(numValue)) return value;
+    if (isNaN(numValue)) return value; // Si no es un número, devolver el valor original
 
     const options = {
         minimumFractionDigits: isInteger ? 0 : 2,
-        maximumFractionDigits: isInteger ? 0 : 2,
-        useGrouping: true // Habilitar separadores de miles
+        maximumFractionDigits: isInteger ? 0 : 2, // Limitar a 2 decimales para dinero, 0 para stock
+        useGrouping: true // Habilita el separador de miles
     };
     return numValue.toLocaleString('es-CO', options);
 };
 
-// Parsea un string formateado de input a un número (eliminando separadores de miles y cambiando coma a punto)
+// Parsea un string formateado a un string numérico limpio para cálculos/envío (ej. "1.234.567,89" -> "1234567.89")
 const parseInputNumber = (value) => {
     if (value === null || value === undefined || value === '') return '';
-    // Eliminar separadores de miles (puntos) y reemplazar coma decimal con punto
-    const cleanedValue = String(value).replace(/\./g, '').replace(/,/g, '.');
-    return cleanedValue; // Devuelve el string limpio, se convertirá a número en onBlur o handleSubmit
+    // Elimina separadores de miles (puntos) y reemplaza la coma decimal por punto decimal.
+    // Esto es crucial para que parseFloat() funcione correctamente en JavaScript.
+    return String(value).replace(/\./g, '').replace(/,/g, '.');
 };
 // --- FIN FUNCIONES DE NÚMEROS ---
 
@@ -51,42 +51,47 @@ const AgregarProductoPage = () => {
     const navigate = useNavigate();
 
     // Estado para los datos del nuevo producto
+    // Los campos numéricos se mantendrán como string en formData
+    // para un mejor control de la entrada del usuario.
     const [formData, setFormData] = useState({
         referencia_producto: '',
         nombre: '',
-        descripcion: '',
-        precio_costo: '', // Mantenemos como string inicialmente para el input
-        precio_sugerido_venta: '', // Mantenemos como string
-        stock: '', // Mantenemos como string
+        marca: '',
+        precio_costo: '', // string
+        precio_sugerido_venta: '', // string
+        stock: '', // string
         proveedor: '',
         categoria: '',
         imagen: '',
         activo: true,
     });
 
-    // Estados para cargar las listas de proveedores y categorías
+    // Estados para cargar las listas de proveedores, categorías y ahora marcas
     const [providers, setProviders] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // useEffect para cargar proveedores y categorías cuando el componente se monta
+    // useEffect para cargar proveedores, categorías y marcas cuando el componente se monta
     useEffect(() => {
         const fetchRelatedData = async () => {
             setPageLoading(true);
             setError(null);
             try {
-                const [categoriesRes, providersRes] = await Promise.all([
+                const [categoriesRes, providersRes, brandsRes] = await Promise.all([
                     axios.get(API_CATEGORIAS_URL),
                     axios.get(API_PROVEEDORES_URL),
+                    axios.get(API_MARCAS_URL),
                 ]);
                 setCategories(categoriesRes.data);
                 setProviders(providersRes.data);
+                setBrands(brandsRes.data);
             } catch (err) {
                 console.error('Error al cargar listas relacionadas:', err);
-                setError('No se pudieron cargar los proveedores o categorías. Intenta de nuevo.');
-                Swal.fire('Error de Carga', 'No se pudieron cargar las listas de categorías o proveedores.', 'error');
+                setError('No se pudieron cargar los proveedores, categorías o marcas. Intenta de nuevo.');
+                Swal.fire('Error de Carga', 'No se pudieron cargar las listas de categorías, proveedores o marcas.', 'error');
             } finally {
                 setPageLoading(false);
             }
@@ -101,9 +106,13 @@ const AgregarProductoPage = () => {
 
         if (type === 'checkbox') {
             newValue = checked;
-        } else if (name === 'precio_costo' || name === 'precio_sugerido_venta' || name === 'stock') {
-            // Para campos numéricos, almacenamos el string limpio (sin formatear) en el estado
-            newValue = parseInputNumber(value);
+        } else if (name === 'precio_costo' || name === 'precio_sugerido_venta') {
+            // Permitir que el usuario escriba puntos y comas libremente mientras edita.
+            // No formatear aquí, solo actualizar el string tal cual.
+            newValue = value;
+        } else if (name === 'stock') {
+            // Para stock, solo permitir dígitos.
+            newValue = value.replace(/[^0-9]/g, ''); // Eliminar todo lo que no sea dígito
         }
 
         setFormData(prevData => ({
@@ -119,24 +128,25 @@ const AgregarProductoPage = () => {
         setError(null);
 
         try {
-            // Aquí, convertimos los strings limpios a números reales para el envío
+            // Crear un objeto con los datos a enviar a la API
             const dataToSend = {
                 ...formData,
+                // Convertir IDs a entero o null si están vacíos
                 proveedor: formData.proveedor ? parseInt(formData.proveedor) : null,
                 categoria: formData.categoria ? parseInt(formData.categoria) : null,
-                // Aseguramos que los precios y stock sean números para la API
+                marca: formData.marca ? parseInt(formData.marca) : null,
+                // Convertir los campos numéricos a float/int después de parsear el string
                 precio_costo: parseFloat(parseInputNumber(formData.precio_costo)),
                 precio_sugerido_venta: parseFloat(parseInputNumber(formData.precio_sugerido_venta)),
                 stock: parseInt(parseInputNumber(formData.stock)),
             };
 
-            // Validación básica para asegurar que los campos numéricos sean números
+            // Validación más robusta para asegurar que los campos numéricos sean números válidos
             if (isNaN(dataToSend.precio_costo) || isNaN(dataToSend.precio_sugerido_venta) || isNaN(dataToSend.stock)) {
-                Swal.fire('Error de Formato', 'Por favor, asegúrate de que los campos numéricos tengan un formato correcto.', 'error');
+                Swal.fire('Error de Formato', 'Por favor, asegúrate de que los campos numéricos (precio costo, precio venta, stock) tengan un formato correcto.', 'error');
                 setLoading(false);
                 return;
             }
-
 
             const response = await axios.post(API_PRODUCTOS_URL, dataToSend);
 
@@ -146,13 +156,12 @@ const AgregarProductoPage = () => {
                     'El producto se ha agregado exitosamente.',
                     'success'
                 );
-                // Limpia el formulario y resetea los campos numéricos a string vacío
+                // Limpia el formulario
                 setFormData({
-                    referencia_producto: '', nombre: '', descripcion: '',
+                    referencia_producto: '', nombre: '', marca: '',
                     precio_costo: '', precio_sugerido_venta: '', stock: '',
                     proveedor: '', categoria: '', imagen: '', activo: true,
                 });
-                // navigate('/productos'); // Opcional: Redirige
             } else {
                 Swal.fire('Error', 'Hubo un problema al agregar el producto.', 'error');
             }
@@ -172,7 +181,7 @@ const AgregarProductoPage = () => {
     // Manejador para formatear el número cuando el campo pierde el foco
     const handleBlurNumberField = (e) => {
         const { name, value } = e.target;
-        const cleanedValue = parseInputNumber(value); // Obtener el string limpio
+        const cleanedValue = parseInputNumber(value); // Obtiene el valor numérico limpio como string (ej. "560000.00")
 
         let numericValue;
         if (name === 'stock') {
@@ -181,15 +190,15 @@ const AgregarProductoPage = () => {
             numericValue = parseFloat(cleanedValue);
         }
 
-        if (!isNaN(numericValue)) {
-            // Actualizar el estado con el número real para cálculos, pero la visualización se maneja por 'value' prop
+        // Si el valor numérico es válido, actualiza el estado con ese número.
+        // Si no es un número válido O el valor limpio está vacío, establece el estado a string vacío.
+        if (!isNaN(numericValue) && cleanedValue !== '') {
             setFormData(prevData => ({ ...prevData, [name]: numericValue }));
-        } else if (cleanedValue === '') {
-            setFormData(prevData => ({ ...prevData, [name]: '' })); // Permitir campo vacío
         } else {
-            // Si el valor no es un número válido después de limpiar, mostrar error y resetear
-            Swal.fire('Formato Inválido', `Por favor, introduce un número válido para "${name.replace(/_/g, ' ')}".`, 'warning');
-            setFormData(prevData => ({ ...prevData, [name]: '' })); // Resetear el campo
+            setFormData(prevData => ({ ...prevData, [name]: '' }));
+            if (cleanedValue !== '') { // Solo mostrar advertencia si intentaron escribir algo inválido
+                 Swal.fire('Formato Inválido', `Por favor, introduce un número válido para "${name.replace(/_/g, ' ')}".`, 'warning');
+            }
         }
     };
 
@@ -199,8 +208,8 @@ const AgregarProductoPage = () => {
             className="add-product-page p-4"
             style={{
                 minHeight: 'calc(100vh - 56px)',
-                backgroundColor: '#ffffff', // Fondo blanco para la página
-                color: '#000000' // Texto negro por defecto
+                backgroundColor: '#ffffff',
+                color: '#000000'
             }}
         >
             <h2 className="mb-4 text-center" style={{ color: '#000000', fontWeight: 'bold' }}>
@@ -249,17 +258,22 @@ const AgregarProductoPage = () => {
                                         />
                                     </Form.Group>
 
-                                    <Form.Group className="mb-3" controlId="formDescripcion">
-                                        <Form.Label style={{color: '#000000'}}>Descripción</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={2} // <-- Descripción más pequeña
-                                            name="descripcion"
-                                            value={formData.descripcion}
+                                    {/* Campo para la selección de Marca */}
+                                    <Form.Group className="mb-3" controlId="formMarca">
+                                        <Form.Label style={{color: '#000000'}}>Marca</Form.Label>
+                                        <Form.Select
+                                            name="marca"
+                                            value={formData.marca}
                                             onChange={handleChange}
-                                            placeholder="Descripción detallada del producto (opcional)..."
-                                            className="form-control-light"
-                                        />
+                                            className="form-select-light"
+                                        >
+                                            <option value="">Selecciona una marca (Opcional)</option>
+                                            {brands.map(brand => (
+                                                <option key={brand.id} value={String(brand.id)}>
+                                                    {brand.nombre}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
                                     </Form.Group>
 
                                     <Form.Group className="mb-3" controlId="formPrecioCosto">
@@ -267,19 +281,21 @@ const AgregarProductoPage = () => {
                                         <InputGroup>
                                             <InputGroup.Text className="input-group-text-light">$</InputGroup.Text>
                                             <Form.Control
-                                                type="text" // <-- Cambiado a texto para formato
+                                                type="text"
                                                 name="precio_costo"
-                                                // Mostrar formateado si es número, si no, el string tal cual para permitir edición
-                                                value={
-                                                    typeof formData.precio_costo === 'number'
-                                                        ? formatInputNumber(formData.precio_costo)
-                                                        : formData.precio_costo
+                                                // Aquí aplicamos formatInputNumber para la visualización.
+                                                // Si formData.precio_costo es un número, se formatea.
+                                                // Si es un string (mientras se edita), se muestra directamente.
+                                                value={typeof formData.precio_costo === 'number'
+                                                    ? formatInputNumber(formData.precio_costo)
+                                                    : formData.precio_costo // Si es string (editando), lo muestra tal cual
                                                 }
                                                 onChange={handleChange}
-                                                onBlur={handleBlurNumberField} // <-- Manejar el foco para formatear
+                                                onBlur={handleBlurNumberField} // Al perder foco, se intenta formatear y limpiar el estado
                                                 required
-                                                placeholder="0,00" // Actualizar placeholder
-                                                className="form-control-light text-end" // Alinear a la derecha
+                                                placeholder="0,00"
+                                                className="form-control-light text-end"
+                                                inputMode="decimal" // Sugiere teclado numérico con decimales
                                             />
                                         </InputGroup>
                                     </Form.Group>
@@ -289,18 +305,18 @@ const AgregarProductoPage = () => {
                                         <InputGroup>
                                             <InputGroup.Text className="input-group-text-light">$</InputGroup.Text>
                                             <Form.Control
-                                                type="text" // <-- Cambiado a texto para formato
+                                                type="text"
                                                 name="precio_sugerido_venta"
-                                                value={
-                                                    typeof formData.precio_sugerido_venta === 'number'
-                                                        ? formatInputNumber(formData.precio_sugerido_venta)
-                                                        : formData.precio_sugerido_venta
+                                                value={typeof formData.precio_sugerido_venta === 'number'
+                                                    ? formatInputNumber(formData.precio_sugerido_venta)
+                                                    : formData.precio_sugerido_venta
                                                 }
                                                 onChange={handleChange}
-                                                onBlur={handleBlurNumberField} // <-- Manejar el foco para formatear
+                                                onBlur={handleBlurNumberField}
                                                 required
                                                 placeholder="0,00"
-                                                className="form-control-light text-end" // Alinear a la derecha
+                                                className="form-control-light text-end"
+                                                inputMode="decimal"
                                             />
                                         </InputGroup>
                                     </Form.Group>
@@ -311,18 +327,18 @@ const AgregarProductoPage = () => {
                                     <Form.Group className="mb-3" controlId="formStock">
                                         <Form.Label style={{color: '#000000'}}>Stock</Form.Label>
                                         <Form.Control
-                                            type="text" // <-- Cambiado a texto para formato
+                                            type="text"
                                             name="stock"
-                                            value={
-                                                typeof formData.stock === 'number'
-                                                    ? formatInputNumber(formData.stock, true) // True para entero
-                                                    : formData.stock
+                                            value={typeof formData.stock === 'number'
+                                                ? formatInputNumber(formData.stock, true)
+                                                : formData.stock
                                             }
                                             onChange={handleChange}
-                                            onBlur={handleBlurNumberField} // <-- Manejar el foco para formatear
+                                            onBlur={handleBlurNumberField}
                                             required
                                             placeholder="0"
-                                            className="form-control-light text-end" // Alinear a la derecha
+                                            className="form-control-light text-end"
+                                            inputMode="numeric" // Sugiere teclado numérico sin decimales
                                         />
                                     </Form.Group>
 
