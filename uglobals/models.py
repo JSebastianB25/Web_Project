@@ -1,4 +1,4 @@
-# zglobals/models.py
+# uglobals/models.py
 from django.db import models
 
 # Modelo Proveedor

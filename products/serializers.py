@@ -1,41 +1,52 @@
 # products/serializers.py
 from rest_framework import serializers
-from .models import Producto
-# Asegúrate de importar los modelos de Proveedor y Categoria desde su ubicación real
-from uglobals.models import Proveedor, Categoria # Ajusta la ruta si es diferente
+from .models import Producto, Proveedor, Categoria, Marca
 
 class ProductoSerializer(serializers.ModelSerializer):
-    # Campo para la lectura (GET): devuelve el nombre del proveedor. Es solo lectura.
     proveedor_nombre = serializers.ReadOnlyField(source='proveedor.nombre')
-    # Campo para la lectura (GET): devuelve el nombre de la categoría. Es solo lectura.
     categoria_nombre = serializers.ReadOnlyField(source='categoria.nombre')
+    marca_nombre = serializers.ReadOnlyField(source='marca.nombre')
 
-    # Campo para la escritura (POST/PUT): Acepta el ID del proveedor.
-    # QUITAR allow_null=True y required=False para que sea OBLIGATORIO.
     proveedor = serializers.PrimaryKeyRelatedField(
         queryset=Proveedor.objects.all()
     )
-    # Campo para la escritura (POST/PUT): Acepta el ID de la categoría.
-    # QUITAR allow_null=True y required=False para que sea OBLIGATORIO.
     categoria = serializers.PrimaryKeyRelatedField(
-        queryset=Categoria.objects.all()
+        queryset=Categoria.objects.all(),
+        # Si quieres que la categoría sea opcional como en tu modelo (null=True),
+        # deberías agregar blank=True en el modelo y luego aquí:
+        # allow_null=True,
+        # required=False
     )
+    marca = serializers.PrimaryKeyRelatedField(
+        queryset=Marca.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    
+    # CAMBIO AQUÍ: Ahora es ImageField
+    # Lo hacemos no requerido y permitimos nulos, ya que es opcional y puede venir de URL o archivo
+    imagen = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Producto
         fields = [
+            'id',
             'referencia_producto',
             'nombre',
-            'descripcion',
+            'marca',
             'precio_costo',
             'precio_sugerido_venta',
             'stock',
-            'proveedor',         # Este es el campo para escribir/enviar el ID
-            'categoria',         # Este es el campo para escribir/enviar el ID
+            'proveedor',
+            'categoria',
             'imagen',
             'fecha_creacion',
             'activo',
-            'proveedor_nombre',  # Este es el campo para leer el nombre
-            'categoria_nombre'   # Este es el campo para leer el nombre
+            'marca_nombre',
+            'proveedor_nombre',
+            'categoria_nombre'
         ]
         read_only_fields = ['fecha_creacion']
+        extra_kwargs = {
+            'referencia_producto': {'required': False, 'allow_null': True}
+        }

@@ -23,7 +23,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
     search_fields = [
         'referencia_producto',
         'nombre',
-        'descripcion',
+        'marca__nombre',      # Busca por el nombre de la marca
         'proveedor__nombre',   # Busca por el nombre del proveedor
         'categoria__nombre'    # Busca por el nombre de la categoría
         # Si agregaras un campo 'marca' en Producto, lo añadirías aquí: 'marca__nombre'

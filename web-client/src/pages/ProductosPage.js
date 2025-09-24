@@ -1,15 +1,15 @@
 // web-client/src/pages/ProductosPage.js
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
+import {
     Container, Row, Col, Card, Form, InputGroup, Button, Spinner,
     Alert // Agregado: Alert para mensajes de estado
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-    faSearch, faTimes, faInfoCircle, // Eliminamos faFilter
+import {
+    faSearch, faTimes, faInfoCircle,
     faBoxesStacked // Agregado: Nuevo icono para el título de la página
-} from '@fortawesome/free-solid-svg-icons'; 
+} from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
@@ -68,12 +68,12 @@ const ProductosPage = () => {
     const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
     // Manejador para limpiar la barra de búsqueda
-    const handleClearSearch = () => { 
+    const handleClearSearch = () => {
         setSearchTerm('');
     };
 
     return (
-        <Container 
+        <Container
             fluid // Asegura que ocupe todo el ancho
             className="productos-page p-4" // Clase para estilos base
             style={{
@@ -136,33 +136,47 @@ const ProductosPage = () => {
             {/* Listado de Productos en Cards */}
             {!loading && !error && products.length > 0 && (
                 <Row xs={1} md={2} lg={3} xl={4} className="g-4"> {/* Ajuste para más columnas en pantallas grandes */}
-                    {products.map(product => (
-                        <Col key={product.referencia_producto}>
-                            <Card className="h-100 shadow-sm productos-card"> {/* Nueva clase para la tarjeta de producto */}
-                                <Card.Img
-                                    variant="top"
-                                    src={product.imagen || 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'} // Fallback mejorado
-                                    alt={product.nombre}
-                                    className="productos-card-img" // Nueva clase para la imagen
-                                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'; }} // Fallback en error
-                                />
-                                <Card.Body className="d-flex flex-column productos-card-body"> {/* Nueva clase */}
-                                    <Card.Title className="fw-bold text-truncate productos-card-title" title={product.nombre}>
-                                        {product.nombre}
-                                    </Card.Title>
-                                    <Card.Text className="text-muted small mb-2 productos-card-ref"> {/* Nueva clase */}
-                                        Ref: {product.referencia_producto}
-                                    </Card.Text>
-                                    <Card.Text className="flex-grow-1 productos-card-details"> {/* Nueva clase */}
-                                        <strong>Precio Venta:</strong> ${parseFloat(product.precio_sugerido_venta).toLocaleString('es-CO')}<br />
-                                        <strong>Stock:</strong> {product.stock}<br />
-                                        <strong>Proveedor:</strong> {product.proveedor_nombre || 'N/A'}<br />
-                                        <strong>Categoría:</strong> {product.categoria_nombre || 'N/A'}
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    ))}
+                    {products.map(product => {
+                        // Lógica para construir la URL completa de la imagen
+                        let displayImageUrl = '';
+                        if (product.imagen) {
+                            // Si la imagen es una ruta relativa, construir la URL completa
+                            // Asumimos que MEDIA_URL es '/media/' y tu API_BASE_URL es 'http://localhost:8000/api'
+                            // Entonces la base para media es 'http://localhost:8000'
+                            displayImageUrl = product.imagen.startsWith('http')
+                                ? product.imagen
+                                : `${API_BASE_URL.replace('/api', '')}${product.imagen}`;
+                        }
+
+                        return (
+                            <Col key={product.referencia_producto}>
+                                <Card className="h-100 shadow-sm productos-card"> {/* Nueva clase para la tarjeta de producto */}
+                                    <Card.Img
+                                        variant="top"
+                                        src={displayImageUrl || 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'} // Fallback mejorado
+                                        alt={product.nombre}
+                                        className="productos-card-img" // Nueva clase para la imagen
+                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x200/e0e0e0/555555?text=Sin+Imagen'; }} // Fallback en error
+                                    />
+                                    <Card.Body className="d-flex flex-column productos-card-body"> {/* Nueva clase */}
+                                        <Card.Title className="fw-bold text-truncate productos-card-title" title={product.nombre}>
+                                            {product.nombre}
+                                        </Card.Title>
+                                        <Card.Text className="text-muted small mb-2 productos-card-ref"> {/* Nueva clase */}
+                                            Ref: {product.referencia_producto}
+                                        </Card.Text>
+                                        <Card.Text className="flex-grow-1 productos-card-details"> {/* Nueva clase */}
+                                            <strong>Precio Venta:</strong> ${parseFloat(product.precio_sugerido_venta).toLocaleString('es-CO')}<br />
+                                            <strong>Stock:</strong> {product.stock}<br />
+                                            <strong>Proveedor:</strong> {product.proveedor_nombre || 'N/A'}<br />
+                                            <strong>Categoría:</strong> {product.categoria_nombre || 'N/A'}<br />
+                                            <strong>Marca:</strong> {product.marca_nombre || 'N/A'} {/* ¡Campo de Marca Agregado! */}
+                                        </Card.Text>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        );
+                    })}
                 </Row>
             )}
         </Container>
