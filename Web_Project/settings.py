@@ -14,6 +14,17 @@ from pathlib import Path
 # settings.py
 import os
 
+# Configuración de Email para un dominio propio
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.hostinger.com' # <--- ¡CAMBIA ESTO por el servidor SMTP de tu proveedor!
+EMAIL_PORT = 465 # <--- El puerto SMTP (comúnmente 587 para TLS o 465 para SSL)
+EMAIL_USE_TLS = False # <--- Generalmente True para 587. Si usas 465, podría ser EMAIL_USE_SSL = True
+EMAIL_USE_SSL = True # <--- Si EMAIL_USE_TLS es True, este debe ser False, y viceversa.
+EMAIL_HOST_USER = 'ventas@keeplicpo.com' # <--- ¡CAMBIA ESTO por tu dirección de correo completa!
+EMAIL_HOST_PASSWORD = 'V3nt@s124' # <--- ¡CAMBIA ESTO por la contraseña de esa cuenta de correo!
+DEFAULT_FROM_EMAIL = 'ventas@keeplicpo.com' # <--- ¡CAMBIA ESTO por tu dirección de correo completa!
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 

@@ -16,7 +16,7 @@ import {
     Alert
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faEdit, faTrash, faTimes, faBoxOpen, faSpinner, faLink, faUpload, faCamera, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faEdit, faTrash, faTimes, faBoxOpen, faSpinner, faLink, faUpload, faCamera, faTimesCircle , faPlus} from '@fortawesome/free-solid-svg-icons';
 import JsBarcode from 'jsbarcode';
 import Webcam from 'react-webcam';
 

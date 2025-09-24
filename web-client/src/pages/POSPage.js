@@ -80,7 +80,6 @@ const POSPage = () => {
 
     const fetchFacturas = useCallback(async () => {
         try {
-            // Limitar a 5 facturas y ordenar por fecha descendente para "últimas facturas"
             const response = await axios.get(`${API_FACTURAS_URL}?limit=5&ordering=-fecha`);
             setFacturas(response.data.results || []);
         } catch (err) {
@@ -387,28 +386,48 @@ const POSPage = () => {
     const handleCompleteInvoice = async (invoiceId) => {
         Swal.fire({
             title: '¿Completar Factura?',
-            text: "Esta acción marcará la factura como completada.",
+            text: "Esta acción marcará la factura como completada y enviará un PDF al cliente.",
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, Completar',
+            confirmButtonText: 'Sí, Completar y Enviar Email',
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
+                    Swal.fire({
+                        title: 'Completando y Enviando Email...',
+                        text: 'Por favor, espera.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // 1. Marcar factura como completada
                     await axios.post(`${API_FACTURAS_URL}${invoiceId}/completar/`);
+
+                    // 2. Enviar PDF por email
+                    const emailResponse = await axios.post(`${API_FACTURAS_URL}${invoiceId}/send_pdf_email/`);
+
                     Swal.fire(
-                        '¡Completada!',
-                        'La factura ha sido marcada como Completada.',
+                        '¡Completada y Enviada!',
+                        `La factura ha sido marcada como Completada. ${emailResponse.data.message}`,
                         'success'
                     );
                     fetchFacturas();
                 } catch (error) {
-                    console.error('Error al completar la factura:', error);
+                    console.error('Error al completar o enviar la factura:', error);
+                    let errorMessage = 'No se pudo completar la factura o enviar el email.';
+                    if (error.response && error.response.data && error.response.data.error) {
+                        errorMessage = error.response.data.error;
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
                     Swal.fire(
                         'Error',
-                        `No se pudo completar la factura: ${error.response?.data?.error || error.message}`,
+                        `Hubo un problema: ${errorMessage}`,
                         'error'
                     );
                 }
@@ -637,7 +656,7 @@ const POSPage = () => {
                                                                 variant="primary"
                                                                 size="sm"
                                                                 onClick={() => handleViewInvoiceDetails(factura)}
-                                                                className="btn-action-icon" // Clase para botones de icono
+                                                                className="btn-action-icon"
                                                                 title="Ver Detalles"
                                                             >
                                                                 <FontAwesomeIcon icon={faEye} />
@@ -648,7 +667,7 @@ const POSPage = () => {
                                                                     size="sm"
                                                                     onClick={() => handleCompleteInvoice(factura.id)}
                                                                     className="btn-action-icon"
-                                                                    title="Completar Factura"
+                                                                    title="Completar Factura y Enviar PDF"
                                                                 >
                                                                     <FontAwesomeIcon icon={faCheckCircle} />
                                                                 </Button>

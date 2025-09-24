@@ -81,9 +81,33 @@ const UsuariosPage = () => {
 
     // Load users and roles on component mount
     useEffect(() => {
-        fetchUsuarios();
-        fetchRoles(); // Load roles as well
-    }, [fetchUsuarios, fetchRoles]);
+        const fetchUsers = async () => {
+            setLoading(true);
+            try {
+                const [usuariosRes, rolesRes] = await Promise.all([
+                    axios.get(API_USUARIOS_URL),
+                    axios.get(API_ROLES_URL),
+                ]);
+
+                setRoles(rolesRes.data);
+
+                const rolesMap = new Map(rolesRes.data.map(rol => [rol.id, rol.nombre]));
+
+                // Asignar el nombre del rol a cada usuario
+                const usuariosConRoles = usuariosRes.data.map(usuario => ({
+                    ...usuario,
+                    nombre_rol: rolesMap.get(usuario.rol) || 'Sin Rol'
+                }));
+
+                setUsuarios(usuariosConRoles);
+                setLoading(false);
+            } catch (err) {
+                setError('Error al cargar la información de usuarios.');
+                setLoading(false);
+            }
+        };
+        fetchUsers();
+    }, []);
 
     // Handler for the new user form
     const handleNewUserChange = (e) => {
@@ -384,14 +408,13 @@ const UsuariosPage = () => {
                                         <tr key={usuario.id}>
                                             <td>{usuario.id}</td>
                                             <td>{usuario.username}</td>
-                                            <td>{usuario.email}</td>
-                                            {/* Access role name through the 'rol' object */}
-                                            <td>{usuario.rol ? usuario.rol.nombre : 'No Role'}</td>
-                                            <td className="text-center d-flex justify-content-center gap-2"> {/* <<-- ADDED: Use gap-2 for spacing */}
+                                            <td>{usuario.email}</td>                                          
+                                            <td>{usuario.nombre_rol}</td>
+                                            <td className="text-center d-flex justify-content-center gap-2">
                                                 <Button
                                                     variant="warning"
                                                     size="sm"
-                                                    className="btn-action-edit" // <<-- ADDED: Style class
+                                                    className="btn-action-edit"
                                                     onClick={() => handleEditClick(usuario)}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} /> Edit
